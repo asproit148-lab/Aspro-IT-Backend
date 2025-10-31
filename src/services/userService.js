@@ -1,0 +1,125 @@
+import User from "../models/userModel.js";
+import bcrypt from "bcrypt";
+import { OAuth2Client } from "google-auth-library";
+import jwt from "jsonwebtoken";
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+
+const googleAuthService = async (googleToken) => {
+  const ticket = await client.verifyIdToken({
+    idToken: googleToken,
+    audience: process.env.GOOGLE_CLIENT_ID,
+  });
+
+  const { email, name, picture } = ticket.getPayload();
+
+  let user = await User.findOne({ email });
+  if (!user) {
+    user = await User.create({
+      name,
+      email,
+      profilePic: picture,
+      isGoogleUser: true,
+    });
+  }
+
+  const accessToken = generateAccessToken(user);
+  const refreshToken = generateRefreshToken(user);
+
+  user.refreshToken = refreshToken;
+  await user.save({ validateBeforeSave: false });
+
+  return { user, accessToken, refreshToken };
+};
+
+
+const register = async (name, email, password) => {
+  const existingUser = await User.findOne({ email });
+  if (existingUser) return "user already exists";
+
+  const hashedPassword = await bcrypt.hash(password, 12);
+  const user = await User.create({ name, email, password: hashedPassword });
+  return user;
+};
+
+
+const login = async (email, password) => {
+  const user = await User.findOne({ email });
+  if (!user) throw new Error("user does not exist");
+
+  const matchPassword = await bcrypt.compare(password, user.password);
+  if (!matchPassword) throw new Error("incorrect password");
+
+  const accessToken = generateAccessToken(user);
+  const refreshToken = generateRefreshToken(user);
+
+  user.refreshToken = refreshToken;
+  await user.save({ validateBeforeSave: false });
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+  };
+
+  return {
+    message: "User logged in successfully",
+    accessToken,
+    refreshToken,
+    options,
+    user: { id: user._id, name: user.name, email: user.email },
+  };
+};
+
+
+const refreshAccessToken = async (refreshToken) => {
+  if (!refreshToken) throw new Error("Refresh token required");
+
+  const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+  const user = await User.findById(decoded?._id);
+  if (!user) throw new Error("User not found");
+  if (user.refreshToken !== refreshToken)
+    throw new Error("Refresh token invalid or expired");
+
+  const newAccessToken = generateAccessToken(user);
+  const newRefreshToken = generateRefreshToken(user);
+
+  user.refreshToken = newRefreshToken;
+  await user.save({ validateBeforeSave: false });
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+  };
+
+  return { newAccessToken, newRefreshToken, options };
+};
+
+
+
+const generateAccessToken = (user) =>
+  jwt.sign(
+    { _id: user._id, name: user.name, email: user.email },
+    process.env.ACCESS_TOKEN_SECRET,
+    { expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "30m" }
+  );
+
+const generateRefreshToken = (user) =>
+  jwt.sign({ _id: user._id }, process.env.REFRESH_TOKEN_SECRET, {
+    expiresIn: process.env.REFRESH_TOKEN_EXPIRY || "7d",
+  });
+
+const getUserInfo=async(userId)=>{
+
+  const user=await User.findById(userId);
+
+  if(!user){
+    throw new Error("user not found");
+  }
+
+  return user;
+}
+
+export default { register, login, refreshAccessToken, googleAuthService,getUserInfo };

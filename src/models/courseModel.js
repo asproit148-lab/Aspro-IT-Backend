@@ -1,35 +1,55 @@
 import mongoose from 'mongoose';
 
 const courseSchema=new mongoose.Schema({
-  name:{
+  Course_category:{
     type:String,
     required:true
   },
-  category:{
+  Course_title:{
     type:String,
-    required:true
-  },
-  price:{
-    type:Number,
     required:true,
 
   },
-  discountedPrice:{
-    type:Number,
+  Course_description:{
+    type:String,
     required:true,
   },
-  discount:{
+  imageUrl:{
+    type:String
+  },
+  Course_type:{
+    type:String,
+    enum:["Live","Recorded"],
+    required:true,
+  },
+  Modules:[
+    {
+      module_name:String,
+      module_description:String
+    }
+  ],
+  Course_cost:{
+    type:String
+  },
+  Discount:{
     type:Number
   },
-  learnings:[String],
-  Skills:[String],
-
-  courseDescription:[String],
-
-  courseFeedback:[String],
-
-  courseFaq:[String]
+  Final_cost:{
+    type:Number,
+    required:true
+  },
+  FAQs:[
+    {
+      question:String,
+      answer:String
+    }
+  ],
 })
+
+courseSchema.pre("save",function(next){
+  this.Final_cost=this.Course_cost-this.Discount
+  next();
+});
 
 const Course=mongoose.model("Course",courseSchema);
 

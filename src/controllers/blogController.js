@@ -1,9 +1,9 @@
 import blogService from '../services/blogService.js';
 
 const addBlog=async(req,res)=>{
-  const{title,content,image,author}=req.body;
+  const{title,content,image}=req.body;
 
-  if(!title || !content || !author){
+  if(!title || !content){
     return res.status(400).json("please provide required information");
   }
 
@@ -12,7 +12,7 @@ const addBlog=async(req,res)=>{
      file=image;
   }
 
-  const Blog=await blogService.addBlog(title,content,author,file);
+  const Blog=await blogService.addBlog(title,content,file);
 
   return res.status(201).json({message:"blog created successfully",Blog});
 }

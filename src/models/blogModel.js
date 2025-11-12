@@ -1,20 +1,15 @@
 import mongoose from "mongoose";
 
 const blogSchema = new mongoose.Schema({
-  title: {
+  Blog_title: {
     type: String,
     required: true,
   },
-  content: {
+  Blog_content: {
     type: String,
     required: true,
   },
-  author: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User", // or "Admin" if only admins post
-    required: true,
-  },
-  imageUrl: {
+  BlogImage: {
     type: String,
   },
   

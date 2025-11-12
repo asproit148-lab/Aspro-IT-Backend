@@ -33,7 +33,7 @@ app.use("/api/chatbot", chatbotRoutes);
 console.log("hi")
 
 app.get("/", (req, res) => {
-  res.send("✅ DSA Tracker backend is running!");
+  res.send("✅ Aspro It backend is running!");
 });
 
 export default app;

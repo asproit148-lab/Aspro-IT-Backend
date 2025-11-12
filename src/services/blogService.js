@@ -1,10 +1,21 @@
 import Blog from '../models/blogModel.js';
+import { uploadOnCloudinary } from "../utils/uploadImage.js";
 
-const addBlog=async(title,content,author,file)=>{
+const addBlog=async(title,content,file)=>{
+  let BlogImage = null;
 
-  const blog= Blog.create({title,content,author,file});
+  if (file) {
+    const uploadResult = await uploadOnCloudinary(file.path);
+    BlogImage= uploadResult.secure_url;
+  
+
+  const blog= Blog.create({
+    Blog_title:title,
+    Blog_content:content,
+    BlogImage:BlogImage});
 
   return blog;
+}
 }
 
 const updateBlog=async(title,content,file,blogId)=>{
@@ -13,14 +24,22 @@ const updateBlog=async(title,content,file,blogId)=>{
  if(!blog){
     throw new Error("blog not found");
   }
+  if (file) {
+    const uploadResult = await uploadOnCloudinary(file.path);
+    Blog.BlogImage= uploadResult.secure_url;
+  
 
 
-  blog.set(title,content,file);
+  blog.set({
+    Blog_title:title,
+    Blog_content:content,
+  });
 
   const updatedBlog=await blog.save();
 
   return updatedBlog;
 
+}
 }
 
 const deleteBlog=async(blogId)=>{
@@ -50,5 +69,6 @@ const getBlogs=async()=>{
 
   return blog
 }
+
 
 export default  {addBlog,updateBlog,deleteBlog,getBlog,getBlogs};

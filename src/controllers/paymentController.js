@@ -1,49 +1,217 @@
-import Course from '../models/courseModel.js'
-import * as paymentService from "../services/paymentService.js";
+import paymentService from '../services/paymentService.js';
 
-export const createOrder = async (req, res) => {
+const submitPayment = async (req, res) => {
   try {
-    const userId=req.user?._id;
-    const {course_id} = req.params;
+    const userId = req.user?._id; // From auth middleware
+    const { courseId, amount, transactionId } = req.body;
+    const paymentScreenshot = req.file?.path; // From multer upload
 
-     if (!userId || !course_id) {
-      return res.status(400).json({ success: false, message: "User ID and Course ID are required" });
+    if (!userId || !courseId || !amount || !paymentScreenshot) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide all required fields: courseId, amount, and payment screenshot"
+      });
     }
 
-    const course = await Course.findById(course_id);
+    const payment = await paymentService.submitPayment(
+      userId,
+      courseId,
+      amount,
+      paymentScreenshot,
+      transactionId
+    );
 
-    console.log(course)
-
-    if (!course) {
-      return res.status(404).json({ success: false, message: "Course not found" });
-    }
-
-    const order = await paymentService.createOrder(course.discountedPrice);
-    res.status(200).json({
+    return res.status(201).json({
       success: true,
-      order
+      message: "Payment submitted successfully. Awaiting admin approval.",
+      payment
     });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+  } catch (err) {
+    console.error("Error submitting payment:", err);
+    res.status(400).json({ 
+      success: false,
+      message: err.message || "Failed to submit payment" 
+    });
   }
 };
 
-export const verifyPayment = async (req, res) => {
+const approvePayment = async (req, res) => {
   try {
-    const isValid = await paymentService.verifyPayment(req.body);
+    const { paymentId } = req.params;
+    const adminId = req.user?._id; // From auth middleware
 
-    if (!isValid) {
-      return res.status(400).json({ success: false, message: "Invalid payment signature" });
+    if (!paymentId) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Please provide paymentId" 
+      });
     }
 
-    // Optional: Enroll course after success
-    // await paymentService.markCourseEnrolled(req.user._id, req.body.courseId);
+    const payment = await paymentService.approvePayment(paymentId, adminId);
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      message: "Payment verified successfully"
+      message: "Payment approved and user enrolled successfully",
+      payment
     });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+  } catch (err) {
+    console.error("Error approving payment:", err);
+    res.status(400).json({ 
+      success: false,
+      message: err.message || "Failed to approve payment" 
+    });
   }
+};
+
+const rejectPayment = async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+    const { rejectionReason } = req.body;
+    const adminId = req.user?._id; // From auth middleware
+
+    if (!paymentId) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Please provide paymentId" 
+      });
+    }
+
+    if (!rejectionReason) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Please provide rejection reason" 
+      });
+    }
+
+    const payment = await paymentService.rejectPayment(paymentId, adminId, rejectionReason);
+
+    return res.status(200).json({
+      success: true,
+      message: "Payment rejected",
+      payment
+    });
+  } catch (err) {
+    console.error("Error rejecting payment:", err);
+    res.status(400).json({ 
+      success: false,
+      message: err.message || "Failed to reject payment" 
+    });
+  }
+};
+
+const getPendingPayments = async (req, res) => {
+  try {
+    const payments = await paymentService.getPendingPayments();
+
+    return res.status(200).json({
+      success: true,
+      message: "Pending payments fetched successfully",
+      count: payments.length,
+      payments
+    });
+  } catch (err) {
+    console.error("Error fetching pending payments:", err);
+    res.status(500).json({ 
+      success: false,
+      message: "Internal server error" 
+    });
+  }
+};
+
+const getUserPayments = async (req, res) => {
+  try {
+    const userId = req.user?._id; // From auth middleware
+
+    const payments = await paymentService.getUserPayments(userId);
+
+    return res.status(200).json({
+      success: true,
+      message: "User payments fetched successfully",
+      count: payments.length,
+      payments
+    });
+  } catch (err) {
+    console.error("Error fetching user payments:", err);
+    res.status(500).json({ 
+      success: false,
+      message: "Internal server error" 
+    });
+  }
+};
+
+const getPaymentById = async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+
+    if (!paymentId) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Please provide paymentId" 
+      });
+    }
+
+    const payment = await paymentService.getPaymentById(paymentId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Payment details fetched successfully",
+      payment
+    });
+  } catch (err) {
+    console.error("Error fetching payment:", err);
+    res.status(404).json({ 
+      success: false,
+      message: err.message || "Payment not found" 
+    });
+  }
+};
+
+const getAllPayments = async (req, res) => {
+  try {
+    const { status } = req.query; // Optional filter: ?status=approved
+
+    const payments = await paymentService.getAllPayments(status);
+
+    return res.status(200).json({
+      success: true,
+      message: "Payments fetched successfully",
+      count: payments.length,
+      payments
+    });
+  } catch (err) {
+    console.error("Error fetching payments:", err);
+    res.status(500).json({ 
+      success: false,
+      message: "Internal server error" 
+    });
+  }
+};
+
+const getPaymentStats = async (req, res) => {
+  try {
+    const stats = await paymentService.getPaymentStats();
+
+    return res.status(200).json({
+      success: true,
+      message: "Payment statistics fetched successfully",
+      stats
+    });
+  } catch (err) {
+    console.error("Error fetching payment stats:", err);
+    res.status(500).json({ 
+      success: false,
+      message: "Internal server error" 
+    });
+  }
+};
+
+export {
+  submitPayment,
+  approvePayment,
+  rejectPayment,
+  getPendingPayments,
+  getUserPayments,
+  getPaymentById,
+  getAllPayments,
+  getPaymentStats
 };

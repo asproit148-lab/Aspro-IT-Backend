@@ -72,5 +72,10 @@ const getBlogs=async(req,res)=>{
 
   return res.status(200).json({message:"All blogs fetched successfully",blogs})
 }
+const totalBlogs=async(req,res)=>{
+  const blogs=await blogService.getAllBlogs();
 
-export {addBlog,updateBlog,deleteBlog,getBlog,getBlogs};
+  return res.status(200).json({"alls blogs fetcjhed successfully":blogs})
+}
+
+export {addBlog,updateBlog,deleteBlog,getBlog,getBlogs,totalBlogs};

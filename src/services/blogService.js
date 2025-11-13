@@ -70,5 +70,11 @@ const getBlogs=async()=>{
   return blog
 }
 
+const getAllBlogs=async()=>{
+  const allBlogs=await Blog.countDocuments();
 
-export default  {addBlog,updateBlog,deleteBlog,getBlog,getBlogs};
+  return allBlogs;
+}
+
+
+export default  {addBlog,updateBlog,deleteBlog,getBlog,getBlogs,getAllBlogs};

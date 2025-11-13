@@ -8,7 +8,6 @@ const courseSchema=new mongoose.Schema({
   Course_title:{
     type:String,
     required:true,
-
   },
   Course_description:{
     type:String,
@@ -36,7 +35,6 @@ const courseSchema=new mongoose.Schema({
   },
   Final_cost:{
     type:Number,
-    required:true
   },
   FAQs:[
     {

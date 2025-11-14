@@ -1,13 +1,13 @@
-// controllers/bannerController.js
+
 import * as bannerService from "../services/bannerService.js";
 
 export const createBanner = async (req, res) => {
-  try {
-    const banner = await bannerService.addBanner(req.body);
-    res.status(201).json({ message: "Banner added successfully", banner });
-  } catch (err) {
-    res.status(500).json({ message: "Failed to add banner", error: err.message });
-  }
+
+    const{title,description}=req.body;
+    const{image}=req.file;
+    console.log(req.file);
+    const banner = await bannerService.addBanner(title,description,image);
+    return res.status(201).json({ message: "Banner added successfully", banner });
 };
 
 export const getBanners = async (req, res) => {

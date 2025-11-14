@@ -123,8 +123,3 @@ export const getUser=async(req,res)=>{
   return res.status(200).json({message:"user fetched successfully",user});
 }
 
-export const totalEnrollment=async(req,res)=>{
-  const enrollments=await userService.getTotalEnrollments();
-
-  return res.status(200).json({message:"total enrollments fetched successfully",enrollments});
-}

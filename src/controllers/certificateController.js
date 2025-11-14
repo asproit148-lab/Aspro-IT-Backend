@@ -1,73 +1,75 @@
 import certificateService from '../services/certificateService.js';
-import path from 'path';
+import fs from "fs";
+import path from "path";
+import PDFDocument from "pdfkit";
+import User from "../models/userModel.js";
+import Course from "../models/courseModel.js";
+import { fileURLToPath } from "url";
 
-const generateCertificate = async (req, res) => {
-  try {
-    const userId = req.user?._id;
-    const { courseId, startDate, completionDate, grade } = req.body;
-
-    if (!userId || !courseId || !startDate || !completionDate || !grade) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide all required fields: courseId, startDate, completionDate, and grade"
-      });
-    }
-
-    const certificate = await certificateService.generateCertificate(
-      userId,
-      courseId,
-      startDate,
-      completionDate,
-      grade
-    );
-
-    return res.status(201).json({
-      success: true,
-      message: "Certificate generated successfully",
-      certificate
-    });
-  } catch (err) {
-    console.error("Error generating certificate:", err);
-    res.status(400).json({
-      success: false,
-      message: err.message || "Failed to generate certificate"
-    });
-  }
-};
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const downloadCertificate = async (req, res) => {
   try {
-    const { certificateId } = req.params;
-    const userId = req.user?._id;
+    const userId = req.user._id;
+    const { courseId } = req.params;
 
-    if (!certificateId) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide certificateId"
-      });
+    const user = await User.findById(userId);
+    const course = await Course.findById(courseId);
+
+    if (!user || !course) {
+      return res.status(404).json({ message: "User or course not found" });
     }
 
-    const certificate = await certificateService.getCertificateById(certificateId);
-
-    // Verify user owns this certificate
-    if (certificate.userId._id.toString() !== userId.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: "Unauthorized access to certificate"
-      });
+    if (!user.coursesEnrolled.includes(courseId)) {
+      return res.status(403).json({ message: "User not enrolled in this course" });
     }
 
-    // Send file for download
-    const filePath = path.join(process.cwd(), certificate.certificateUrl);
-    return res.download(filePath, `Certificate-${certificate.certificateNumber}.png`);
-  } catch (err) {
-    console.error("Error downloading certificate:", err);
-    res.status(404).json({
-      success: false,
-      message: err.message || "Certificate not found"
+    const certificatesDir = path.resolve("certificates");
+    if (!fs.existsSync(certificatesDir)) fs.mkdirSync(certificatesDir);
+
+    const certificatePath = path.join(
+      certificatesDir,
+      `${user.name}_${course.Course_title}.pdf`
+    );
+
+    // ✅ Use absolute path and PNG format
+const templatePath = path.join(__dirname, "..", "assets", "aspro_certificate.jpg");
+
+    console.log("Template Path:", templatePath);
+    if (!fs.existsSync(templatePath)) {
+      console.error("Template file not found!");
+      return res.status(500).json({ message: "Template not found" });
+    }
+
+    const doc = new PDFDocument({ size: "A4", layout: "landscape" });
+    const stream = fs.createWriteStream(certificatePath);
+    doc.pipe(stream);
+
+    // ✅ Draw background first
+    doc.image(templatePath, 0, 0, { width: 842});
+
+    // ✅ Then draw text over it
+    doc.fontSize(22).fillColor("black");
+    doc.text(user.name, 350, 237);
+doc.fontSize(20).text(course.Course_title, 300, 273);
+    doc.text("A+", 500, 310);
+
+    doc.fontSize(12);
+    doc.text(`${new Date().toLocaleDateString()}`, 613, 427);
+    doc.text(`${user._id}`, 635, 400);
+
+    doc.end();
+
+    stream.on("finish", () => {
+      res.download(certificatePath);
     });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error generating certificate" });
   }
 };
+
 
 const getUserCertificates = async (req, res) => {
   try {
@@ -166,7 +168,6 @@ const getAllCertificates = async (req, res) => {
 };
 
 export {
-  generateCertificate,
   downloadCertificate,
   getUserCertificates,
   getCertificateById,

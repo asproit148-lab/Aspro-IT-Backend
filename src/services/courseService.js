@@ -55,17 +55,56 @@ const getCourseInfo = async (courseId) => {
 }
 
 const updateCourse = async (data, courseId) => {
+  let { 
+    Course_title,
+    Course_category,
+    Course_description,
+    imageUrl,
+    Course_type,
+    Modules,
+    Course_cost,
+    Discount,
+    FAQs
+  } = data;
+
+  // Parse JSON fields if sent as strings
+  if (typeof Modules === "string") {
+    Modules = JSON.parse(Modules);
+  }
+
+  if (typeof FAQs === "string") {
+    FAQs = JSON.parse(FAQs);
+  }
+
+  // Find course by ID
   const course = await Course.findById(courseId);
-  
   if (!course) {
     throw new Error("Course not found");
   }
 
-  course.set(data);
-  const updatedCourse = await course.save();
+  // Handle image upload (if new image provided)
+  let CourseImage = course.imageUrl; // keep old image by default
+  if (imageUrl) {
+    const uploadResult = await uploadOnCloudinary(imageUrl);
+    CourseImage = uploadResult.secure_url;
+  }
 
+  // Update fields
+  course.Course_title = Course_title || course.Course_title;
+  course.Course_category = Course_category || course.Course_category;
+  course.Course_description = Course_description || course.Course_description;
+  course.imageUrl = CourseImage;
+  course.Course_type = Course_type || course.Course_type;
+  course.Modules = Modules || course.Modules;
+  course.Course_cost = Course_cost || course.Course_cost;
+  course.Discount = Discount || course.Discount;
+  course.FAQs = FAQs || course.FAQs;
+
+  // Save updated document
+  const updatedCourse = await course.save();
   return updatedCourse;
-}
+};
+
 
 const enrollCourse = async (userId, courseId) => {
   const user = await User.findById(userId);
@@ -101,12 +140,16 @@ const getCourses = async () => {
   return courses;
 }
 
-
 const getTotalEnrollments = async () => {
   const result = await User.aggregate([
     {
       $project: {
-        enrollmentCount: { $size: "$coursesEnrolled" }
+        // Safely handle missing or null coursesEnrolled arrays
+        enrollmentCount: {
+          $size: {
+            $ifNull: ["$coursesEnrolled", []]
+          }
+        }
       }
     },
     {
@@ -117,10 +160,11 @@ const getTotalEnrollments = async () => {
     }
   ]);
 
+  // Return the total count or 0 if none
   return result.length > 0 ? result[0].totalEnrollments : 0;
 };
 
-// Get enrollment count for a specific course
+
 const getCourseEnrollmentCount = async (courseId) => {
   const count = await User.countDocuments({
     coursesEnrolled: courseId
@@ -216,5 +260,7 @@ export default {
   updateCourse, 
   enrollCourse, 
   deleteCourse, 
-  getCourses 
+  getCourses ,
+  getTotalEnrollments,
+  getCourseEnrollmentCount
 };

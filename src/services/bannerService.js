@@ -1,8 +1,14 @@
-// services/bannerService.js
 import Banner from "../models/bannerModel.js";
+import { uploadOnCloudinary } from "../utils/uploadImage.js";
 
-export const addBanner = async (data) => {
-  return await Banner.create(data);
+export const addBanner = async (title, description, image) => {
+  
+  let BannerImage = null;
+  if(image){
+    const uploadResult = await uploadOnCloudinary(image.path);
+    BannerImage= uploadResult.secure_url;
+  }
+  return await Banner.create({ title, description, image: BannerImage });
 };
 
 export const getAllBanners = async () => {

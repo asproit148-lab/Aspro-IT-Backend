@@ -1,7 +1,7 @@
 import Coupon from "../models/couponModel.js";
 
 const addCoupon = async (Code, Discount, Expiry_date) => {
-  // Check if coupon code already exists
+
   const existingCoupon = await Coupon.findOne({ Code });
   if (existingCoupon) {
     throw new Error("Coupon code already exists");
@@ -102,6 +102,10 @@ const getCouponByCode = async (Code) => {
   return coupon;
 };
 
+const getTotalCoupons=async()=>{
+  const coupons=await Coupon.countDocuments();
+  return coupons;
+}
 export default {
   addCoupon,
   updateCoupon,
@@ -109,5 +113,6 @@ export default {
   applyCoupon,
   getAllCoupons,
   getCouponById,
-  getCouponByCode
+  getCouponByCode,
+  getTotalCoupons
 };

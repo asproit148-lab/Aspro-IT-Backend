@@ -74,7 +74,7 @@ const getCourse = async (req, res) => {
 }
 
 const editCourse = async (req, res) => {
-  try {
+
     const {
       Course_title,
       Course_category,
@@ -85,9 +85,10 @@ const editCourse = async (req, res) => {
       Discount,
       FAQs
     } = req.body;
-
+    console.log(req.file);
+    console.log(req.params);
     const { courseId } = req.params;
-    imageUrl=req.file?req.file.path:null
+        const imageUrl = req.file ? req.file.path : null;
     if (!courseId) {
       return res.status(400).json({ message: "Please provide a courseId" });
     }
@@ -111,16 +112,16 @@ const editCourse = async (req, res) => {
     const updatedData = await courseService.updateCourse(data, courseId);
 
     return res.status(200).json({ message: "Course updated successfully", updatedData });
-  } catch (err) {
-    console.error("Error updating course:", err);
-    res.status(500).json({ message: "Internal server error" });
-  }
+  
 }
 
 const enrollCourse = async (req, res) => {
   try {
     const userId = req.user?._id;
     const { courseId } = req.body;
+
+    console.log(userId)
+    console.log(courseId)
 
     if (!userId || !courseId) {
       return res.status(404).json({ message: "Please provide all details" });
@@ -130,7 +131,7 @@ const enrollCourse = async (req, res) => {
     res.json({ success: true, message: "Enrolled successfully!", enrolledCourse });
   } catch (err) {
     console.error("Error enrolling course:", err);
-    res.status(500).json({ message: err.message || "Internal server error" });
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -166,10 +167,16 @@ const getAllCourses = async (req, res) => {
   }
 }
 
-const getTotalEnrollment=async(req,res)=>{
+const getTotalEnrollments=async(req,res)=>{
   const enrollments=await courseService.getTotalEnrollments();
 
   return res.status(200).json({message:"total enrollments fetched successfully",enrollments});
 }
 
-export { addCourse, getCourse, editCourse, enrollCourse, deleteCourse, getAllCourses, getTotalEnrollment };
+const getCourseEnrollments=async(req,res)=>{
+  const {courseId}=req.params;
+  const enrollments=await courseService.getCourseEnrollmentCount(courseId);
+  return res.status(200).json({message:"course enrollments fetched successfully",enrollments});
+}
+
+export { addCourse, getCourse, editCourse, enrollCourse, deleteCourse, getAllCourses, getTotalEnrollments, getCourseEnrollments };

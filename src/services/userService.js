@@ -1,4 +1,5 @@
 import User from "../models/userModel.js";
+import Course from "../models/courseModel.js";
 import bcrypt from "bcrypt";
 import { OAuth2Client } from "google-auth-library";
 import jwt from "jsonwebtoken";
@@ -97,8 +98,6 @@ const refreshAccessToken = async (refreshToken) => {
   return { newAccessToken, newRefreshToken, options };
 };
 
-
-
 const generateAccessToken = (user) =>
   jwt.sign(
     { _id: user._id, name: user.name, email: user.email },
@@ -113,8 +112,11 @@ const generateRefreshToken = (user) =>
 
 const getUserInfo=async(userId)=>{
 
-  const user=await User.findById(userId);
+  const user=await User.findById(userId)
 
+  if (user && user.coursesEnrolled && user.coursesEnrolled.length > 0) {
+  await user.populate("coursesEnrolled");
+}
   if(!user){
     throw new Error("user not found");
   }

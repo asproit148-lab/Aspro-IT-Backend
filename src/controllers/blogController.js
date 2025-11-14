@@ -1,15 +1,15 @@
 import blogService from '../services/blogService.js';
 
 const addBlog=async(req,res)=>{
-  const{title,content,image}=req.body;
-
-  if(!title || !content){
+  const{title,content}=req.body;
+  const BlogImage=req.file;
+  if(!title || !content ||!BlogImage){
     return res.status(400).json("please provide required information");
   }
 
   let file;
-  if(image){
-     file=image;
+  if(BlogImage){
+     file=BlogImage;
   }
 
   const Blog=await blogService.addBlog(title,content,file);
@@ -18,9 +18,10 @@ const addBlog=async(req,res)=>{
 }
 
 const updateBlog=async(req,res)=>{
-  const{title,content,image}=req.body;
+  const{title,content}=req.body;
   const {blogId}=req.params;
 
+  const image=req.file;
   console.log(req.body);
   console.log(req.params);
 

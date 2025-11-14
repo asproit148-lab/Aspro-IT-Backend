@@ -11,10 +11,6 @@ const paymentSchema = new mongoose.Schema({
     ref: "Course",
     required: true
   },
-  amount: {
-    type: Number,
-    required: true
-  },
   paymentScreenshot: {
     type: String,
     required: true
@@ -24,19 +20,9 @@ const paymentSchema = new mongoose.Schema({
     enum: ["pending", "approved", "rejected"],
     default: "pending"
   },
-  rejectionReason: {
-    type: String
-  },
-  approvedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User"
-  },
   approvedAt: {
     type: Date
   },
-  transactionId: {
-    type: String
-  }
 }, {
   timestamps: true
 });

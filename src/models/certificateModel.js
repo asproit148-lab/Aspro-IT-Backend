@@ -58,4 +58,4 @@ certificateSchema.pre('save', async function(next) {
 
 const Certificate = mongoose.model("Certificate", certificateSchema);
 
-export default Certificate;
+export default Certificate; 

@@ -1,9 +1,12 @@
 import Payment from "../models/paymentModel.js";
 import User from "../models/userModel.js";
 import Course from "../models/courseModel.js";
+import { uploadOnCloudinary } from "../utils/uploadImage.js";
+import {  sendEmail } from "../services/emailService.js";
+import {createTransporter} from '../utils/sendEmail.js'
 
-const submitPayment = async (userId, courseId, amount, paymentScreenshot, transactionId) => {
-  // Check if user exists
+const submitPayment = async (userId, courseId, paymentScreenshot) => {
+ 
   const user = await User.findById(userId);
   if (!user) {
     throw new Error("User not found");
@@ -19,7 +22,11 @@ const submitPayment = async (userId, courseId, amount, paymentScreenshot, transa
   if (user.coursesEnrolled.includes(courseId)) {
     throw new Error("User already enrolled in this course");
   }
-
+  let paymentImageUrl = null;
+  if(paymentScreenshot){
+    const uploadResult = await uploadOnCloudinary(paymentScreenshot);
+    paymentImageUrl= uploadResult.secure_url;
+  }
   // Check if there's already a pending payment
   const existingPayment = await Payment.findOne({
     userId,
@@ -34,9 +41,7 @@ const submitPayment = async (userId, courseId, amount, paymentScreenshot, transa
   const newPayment = new Payment({
     userId,
     courseId,
-    amount,
-    paymentScreenshot,
-    transactionId,
+    paymentScreenshot: paymentImageUrl,
     status: "pending"
   });
 
@@ -44,20 +49,19 @@ const submitPayment = async (userId, courseId, amount, paymentScreenshot, transa
   return newPayment;
 };
 
-const approvePayment = async (paymentId, adminId) => {
+const approvePayment = async (paymentId) => {
   const payment = await Payment.findById(paymentId);
 
   if (!payment) {
     throw new Error("Payment not found");
   }
 
-  if (payment.status !== "pending") {
+  if (payment.status === "approved") {
     throw new Error("Payment already processed");
   }
 
   // Update payment status
   payment.status = "approved";
-  payment.approvedBy = adminId;
   payment.approvedAt = new Date();
   await payment.save();
 
@@ -67,11 +71,22 @@ const approvePayment = async (paymentId, adminId) => {
     user.coursesEnrolled.push(payment.courseId);
     await user.save();
   }
+  const transporter = createTransporter();
 
-  return payment;
+  const info = await sendEmail(transporter,{
+    to: user.email,
+      subject: "You have successfully enrolled in the course",
+      text: `Dear [${user.name}],
+Thank you for applying to the [Course name] course. Your payment has been approved successfully and so your enrolment has been confirmed.
+For any queries, contact: asproits@gmail.com
+
+Regards,
+AsproIT`});
+
+  return {payment,info};
 };
 
-const rejectPayment = async (paymentId, adminId, rejectionReason) => {
+const rejectPayment = async (paymentId) => {
   const payment = await Payment.findById(paymentId);
 
   if (!payment) {
@@ -83,12 +98,19 @@ const rejectPayment = async (paymentId, adminId, rejectionReason) => {
   }
 
   payment.status = "rejected";
-  payment.rejectionReason = rejectionReason;
-  payment.approvedBy = adminId;
   payment.approvedAt = new Date();
   await payment.save();
+  const user = await User.findById(payment.userId);
+const transporter = createTransporter();
 
-  return payment;
+  const info = await sendEmail(transporter,{
+    to: user.email,
+      subject: "You have successfully enrolled in the course",
+      text: `Dear [${user.name}],
+Thank you for applying to the [${payment.courseId.Course_title}] course. Your payment has FAILED and your enrolment is on hold.
+Please try again or let us know if we’ve made a mistake.
+Contact: asproits@gmail.com`});
+  return {payment,info};
 };
 
 const getPendingPayments = async () => {
@@ -128,7 +150,6 @@ const getAllPayments = async (status) => {
   const payments = await Payment.find(filter)
     .populate("userId", "name email")
     .populate("courseId", "Course_title Course_cost")
-    .populate("approvedBy", "name email")
     .sort({ createdAt: -1 });
 
   return payments;

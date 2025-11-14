@@ -1,19 +1,18 @@
 import express from 'express';
 import {
-  generateCertificate,
   downloadCertificate,
   getUserCertificates,
   getCertificateById,
   verifyCertificate,
   getAllCertificates
 } from '../controllers/certificateController.js';
+import {authenticate} from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-// User routes (require user authentication)
-router.post('/generate', generateCertificate);
+
 router.get('/my-certificates', getUserCertificates);
-router.get('/download/:certificateId', downloadCertificate);
+router.get('/download/:courseId',authenticate,downloadCertificate);
 router.get('/:certificateId', getCertificateById);
 
 // Public route for certificate verification

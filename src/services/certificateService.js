@@ -1,14 +1,14 @@
 import Certificate from "../models/certificateModel.js";
 import User from "../models/userModel.js";
 import Course from "../models/courseModel.js";
-import { createCanvas, loadImage, registerFont } from 'canvas';
+import PDFDocument from 'pdfkit';
+
 import path from 'path';
 import fs from 'fs';
 
-// Register fonts (make sure you have these font files)
-// registerFont('path/to/your/font.ttf', { family: 'YourFont' });
 
-const generateCertificate = async (userId, courseId, startDate, completionDate, grade) => {
+
+const generateCertificate = async (userId, courseId) => {
   // Verify user is enrolled
   const user = await User.findById(userId);
   const course = await Course.findById(courseId);
@@ -22,27 +22,34 @@ const generateCertificate = async (userId, courseId, startDate, completionDate, 
   }
 
   // Check if certificate already exists
-  let certificate = await Certificate.findOne({ userId, courseId });
+   const doc = new PDFDocument({
+      size: 'A4',
+      layout: 'landscape'
+    });
 
-  if (certificate) {
-    return certificate;
-  }
+    // Set headers for download
+    res.setHeader('Content-Disposition', `attachment; filename=${course.Course_title}_Certificate.pdf`);
+    res.setHeader('Content-Type', 'application/pdf');
 
-  // Create new certificate record
-  certificate = new Certificate({
-    userId,
-    courseId,
-    studentName: user.name,
-    courseName: course.Course_title,
-    startDate,
-    completionDate,
-    grade
-  });
+    // Pipe directly to response
+    doc.pipe(res);
 
-  await certificate.save();
+    // Background template (optional)
+    const templatePath = path.join(process.cwd(), 'templates', 'certificate-template.png');
+    if (fs.existsSync(templatePath)) {
+      doc.image(templatePath, 0, 0, { width: 842 });
+    }
 
-  // Generate certificate image
-  const certificatePath = await createCertificateImage(certificate);
+    // Add dynamic data
+    doc.fontSize(30).fillColor('#333').text('Certificate of Completion', 200, 150);
+    doc.fontSize(20).fillColor('#000').text(`This certifies that`, 250, 220);
+    doc.fontSize(26).fillColor('#0056b3').text(user.name, 250, 260);
+    doc.fontSize(20).fillColor('#000').text(`has successfully completed the course`, 200, 310);
+    doc.fontSize(24).fillColor('#444').text(course.Course_title, 200, 350);
+    doc.fontSize(14).text(`Date: ${new Date().toLocaleDateString()}`, 200, 400);
+    doc.fontSize(14).text(`Certificate ID: ${enrollment.registration_no}`, 200, 420);
+
+    doc.end();
   certificate.certificateUrl = certificatePath;
   await certificate.save();
 

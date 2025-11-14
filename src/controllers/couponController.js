@@ -133,6 +133,10 @@ const getCoupon = async (req, res) => {
     res.status(404).json({ message: err.message || "Coupon not found" });
   }
 };
+const totalCoupons=async(req,res)=>{
+  const coupons=await couponService.getTotalCoupons();
+  return res.status(200).json({message:"total coupons fetched successfully",coupons});
+}
 
 export { 
   addCoupon, 
@@ -140,5 +144,6 @@ export {
   deleteCoupon, 
   applyCoupon, 
   getAllCoupons, 
-  getCoupon 
+  getCoupon,
+  totalCoupons
 };

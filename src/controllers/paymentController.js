@@ -3,22 +3,20 @@ import paymentService from '../services/paymentService.js';
 const submitPayment = async (req, res) => {
   try {
     const userId = req.user?._id; // From auth middleware
-    const { courseId, amount, transactionId } = req.body;
+    const { courseId } = req.params;
     const paymentScreenshot = req.file?.path; // From multer upload
 
-    if (!userId || !courseId || !amount || !paymentScreenshot) {
+    if (!userId || !courseId || !paymentScreenshot) {
       return res.status(400).json({
         success: false,
-        message: "Please provide all required fields: courseId, amount, and payment screenshot"
+        message: "Please provide all required fields: courseId and payment screenshot"
       });
     }
 
     const payment = await paymentService.submitPayment(
       userId,
       courseId,
-      amount,
-      paymentScreenshot,
-      transactionId
+      paymentScreenshot
     );
 
     return res.status(201).json({
@@ -38,7 +36,7 @@ const submitPayment = async (req, res) => {
 const approvePayment = async (req, res) => {
   try {
     const { paymentId } = req.params;
-    const adminId = req.user?._id; // From auth middleware
+    
 
     if (!paymentId) {
       return res.status(400).json({ 
@@ -47,7 +45,7 @@ const approvePayment = async (req, res) => {
       });
     }
 
-    const payment = await paymentService.approvePayment(paymentId, adminId);
+    const payment = await paymentService.approvePayment(paymentId);
 
     return res.status(200).json({
       success: true,
@@ -66,9 +64,7 @@ const approvePayment = async (req, res) => {
 const rejectPayment = async (req, res) => {
   try {
     const { paymentId } = req.params;
-    const { rejectionReason } = req.body;
-    const adminId = req.user?._id; // From auth middleware
-
+   
     if (!paymentId) {
       return res.status(400).json({ 
         success: false,
@@ -76,14 +72,9 @@ const rejectPayment = async (req, res) => {
       });
     }
 
-    if (!rejectionReason) {
-      return res.status(400).json({ 
-        success: false,
-        message: "Please provide rejection reason" 
-      });
-    }
+   
 
-    const payment = await paymentService.rejectPayment(paymentId, adminId, rejectionReason);
+    const payment = await paymentService.rejectPayment(paymentId);
 
     return res.status(200).json({
       success: true,

@@ -9,6 +9,10 @@ import bannerRoutes from './routes/banner.route.js';
 import paymentRoutes from "./routes/payment.route.js";
 import blogRoutes from "./routes/blog.route.js";
 import chatbotRoutes from "./routes/chatbot.route.js";
+import couponRoutes from "./routes/coupon.route.js";
+import certificateRoutes from './routes/certificate.route.js';
+import opportunityRoutes from "./routes/opportunity.route.js";
+
 
 
 
@@ -27,6 +31,9 @@ app.use("/api/banner", bannerRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/blog", blogRoutes);
 app.use("/api/chatbot", chatbotRoutes);
+app.use("/api/coupon", couponRoutes);
+app.use('/api/certificate', certificateRoutes);
+app.use("/api/opportunities", opportunityRoutes);
 
 
 

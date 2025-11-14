@@ -1,14 +1,10 @@
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { fileURLToPath } from "url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const uploadDir = "/tmp/uploads"; // <-- Vercel writable directory
 
-// Go up from middlewares -> src -> project root -> uploads
-const uploadDir = path.join(__dirname, "..", "..", "uploads");
-
+// Create /tmp/uploads if it doesn’t exist
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
   console.log("✅ Created uploads directory:", uploadDir);

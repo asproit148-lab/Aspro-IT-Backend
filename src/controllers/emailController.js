@@ -40,6 +40,28 @@ Date & Time: ${new Date().toLocaleString()}`
   return res.json({ ok: true, info });
   }
 
+const EnrollmentForm=async(req,res)=>{
+  const{name,email,address,state,zip_code,course_name,Mode_of_training,timing,batch_type,phone_no}=req.body;
+  if(!name || !email || !address || !state || !zip_code || !course_name || !Mode_of_training || !timing || !batch_type || !phone_no){
+    return res.status(400).json({error:"please provide all fields"})
+  }
+    const transporter = createTransporter();
+  const info = await sendEmail(transporter,{
+    to: email,
+      subject: "You have received a new enrollment form submission",
+      text: `Full Name: ${name}
+Email: ${email}
+Address: ${address}
+State: ${state}
+Zip Code: ${zip_code}
+courseName: ${course_name}
+Mode of Training: ${Mode_of_training}
+Timing: ${timing}
+Batch Type: ${batch_type}
+Phone: ${phone_no}
+Date & Time: ${new Date().toLocaleString()}`
+  });
+  return res.json({ ok: true, info });
+  }
 
-
-export  {EnquiryForm,ContactForm};
+export  {EnquiryForm,ContactForm,EnrollmentForm};

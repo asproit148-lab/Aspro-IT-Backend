@@ -23,4 +23,23 @@ Date & Time: ${new Date().toLocaleString()}`
   return res.json({ ok: true, info });
   }
 
-export default EnquiryForm;
+const ContactForm=async(req,res)=>{
+  const{name,phone_no,message}=req.body;
+  if(!name || !phone_no || !message){
+    return res.status(400).json({error:"please provide all fields"})
+  }
+    const transporter = createTransporter();
+  const info = await sendEmail(transporter,{
+    to:process.env.EMAIL_USER,
+      subject: "You have received a new contact form submission",
+      text: `Full Name: ${name}
+Phone: ${phone_no}
+Message: ${message}
+Date & Time: ${new Date().toLocaleString()}`
+    });
+  return res.json({ ok: true, info });
+  }
+
+
+
+export  {EnquiryForm,ContactForm};

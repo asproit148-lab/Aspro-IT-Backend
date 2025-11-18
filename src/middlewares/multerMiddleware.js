@@ -2,15 +2,13 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 
-const uploadDir = "/tmp/uploads"; // <-- Vercel writable directory
+const uploadDir = path.join(process.cwd(), "uploads"); // persistent folder on Render
 
-// Create /tmp/uploads if it doesn’t exist
+// Create uploads folder if missing
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
-  console.log("✅ Created uploads directory:", uploadDir);
+  console.log("📁 Created uploads directory:", uploadDir);
 }
-
-console.log("📁 Upload directory:", uploadDir);
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {

@@ -12,7 +12,7 @@ import chatbotRoutes from "./routes/chatbot.route.js";
 import couponRoutes from "./routes/coupon.route.js";
 import certificateRoutes from './routes/certificate.route.js';
 import opportunityRoutes from "./routes/opportunity.route.js";
-
+import resourceRoutes from './routes/resource.route.js';
 
 
 
@@ -34,6 +34,7 @@ app.use("/api/chatbot", chatbotRoutes);
 app.use("/api/coupon", couponRoutes);
 app.use('/api/certificate', certificateRoutes);
 app.use("/api/opportunities", opportunityRoutes);
+app.use('/api/resources',resourceRoutes);
 
 
 

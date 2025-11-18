@@ -13,24 +13,32 @@ cloudinary.config({
 const uploadOnCloudinary = async (localFilePath) => {
   try {
     if (!localFilePath) return null;
+
+    // detect extension
+    const ext = localFilePath.split('.').pop().toLowerCase();
+
+    // force resource_type RAW for pdf/doc/docx
+    let resourceType = "auto";
+    if (["pdf", "doc", "docx", "txt"].includes(ext)) {
+      resourceType = "raw";
+    }
+
     const response = await cloudinary.uploader.upload(localFilePath, {
-      resource_type: "auto",
+      resource_type: resourceType
     });
-    console.log("File uploaded to Cloudinary:", response);
+
+    console.log("Uploaded:", response.secure_url);
 
     fs.unlinkSync(localFilePath);
+
     return response;
   } catch (error) {
-    console.error("Error uploading file to Cloudinary:", error);
+    console.error("Cloudinary Upload Error:", error);
 
-    try {
-      fs.unlinkSync(localFilePath);
-      console.log("Corrupted file removed:", localFilePath);
-    } catch (unlinkError) {
-      console.error("Error removing corrupted file:", unlinkError);
-    }
+    try { fs.unlinkSync(localFilePath); } catch (e) {}
 
     return null;
   }
 };
+
 export { uploadOnCloudinary };

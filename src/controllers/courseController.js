@@ -111,6 +111,11 @@ const getTotalEnrollments = async (req, res) => {
   res.json({ success: true, total: count });
 };
 
+const totalCourse=async(req,res)=>{
+  const count = await courseService.getTotalCourses();
+  res.json({ success: true, total: count });
+}
+
 const getCourseEnrollments = async (req, res) => {
   const count = await courseService.getCourseEnrollmentCount(req.params.courseId);
   res.json({ success: true, count });
@@ -125,4 +130,6 @@ export {
   getAllCourses,
   getTotalEnrollments,
   getCourseEnrollments,
+  totalCourse
+
 };

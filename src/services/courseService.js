@@ -114,6 +114,9 @@ const getTotalEnrollments = async () => {
 const getCourseEnrollmentCount = async (courseId) => {
   return await User.countDocuments({ coursesEnrolled: courseId });
 };
+const getTotalCourses=async()=>{
+  return await Course.countDocuments();
+}
 
 export default {
   addCourse,
@@ -124,4 +127,5 @@ export default {
   enrollCourse,
   getTotalEnrollments,
   getCourseEnrollmentCount,
+  getTotalCourses
 };

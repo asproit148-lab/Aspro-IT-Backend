@@ -1,5 +1,5 @@
 import express from 'express';
-import {getAllCourses,editCourse,enrollCourse,addCourse,getCourse,deleteCourse,getTotalEnrollments, getCourseEnrollments} from '../controllers/courseController.js'
+import {totalCourse,getAllCourses,editCourse,enrollCourse,addCourse,getCourse,deleteCourse,getTotalEnrollments, getCourseEnrollments,} from '../controllers/courseController.js'
 import {authenticate} from "../middlewares/authMiddleware.js";
 import {upload} from "../middlewares/multerMiddleware.js";
 
@@ -13,5 +13,6 @@ router.route('/delete-course/:courseId').delete(deleteCourse);
 router.route('/all-courses').get(getAllCourses);
 router.route('/total-enrollment').get(getTotalEnrollments);
 router.route('/course-enrollment/:courseId').get(getCourseEnrollments);
+router.route('/total-courses').get(totalCourse);
 
 export default router;

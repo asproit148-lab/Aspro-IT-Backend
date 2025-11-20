@@ -11,7 +11,7 @@ const addCourse = async ({
   Course_cost,
   Discount,
   FAQs,
-  imageFile,
+  imageUrl,
 }) => {
   // Make mutable copies
   let parsedSkills = Skills;
@@ -31,11 +31,12 @@ const addCourse = async ({
   }
 
   let uploadedImage = null;
-
-  if (imageFile) {
-    const uploadResult = await uploadOnCloudinary(imageFile);
+console.log("Image File Received:", imageUrl);
+  if (imageUrl) {
+    const uploadResult = await uploadOnCloudinary(imageUrl);
     uploadedImage = uploadResult.secure_url;
   }
+  console.log("Uploaded Image URL:", uploadedImage);
 
   const newCourse = new Course({
     Course_title,

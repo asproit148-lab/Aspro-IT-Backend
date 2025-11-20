@@ -29,7 +29,7 @@ const addCourse = async (req, res) => {
 
     // File
     const imageUrl = req.file ? req.file.path : null;
-
+    console.log("Received Image File Path:", imageUrl);
     const course = await courseService.addCourse({
       Course_title,
       Course_description,
@@ -41,7 +41,7 @@ const addCourse = async (req, res) => {
       FAQs,
       imageUrl,
     });
-
+    console.log("New Course Added:", course);
     res.status(201).json({ success: true, message: "Course Added", course });
   } catch (err) {
     console.error("ADD COURSE ERROR:", err);

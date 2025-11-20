@@ -5,9 +5,9 @@ import {upload} from "../middlewares/multerMiddleware.js";
 
 const router=express.Router();
 
-router.route('/add-Course').post(upload.single('imageUrl'),addCourse);
+router.route('/add-Course').post(upload.single('imageFile'),addCourse);
 router.route('/course-info/:CourseId').get(getCourse);
-router.route('/:courseId/edit-course').put(upload.single('imageUrl'),editCourse);
+router.route('/:courseId/edit-course').put(upload.single('imageFile'),editCourse);
 router.route('/enroll-course').post(authenticate,enrollCourse);
 router.route('/delete-course/:courseId').delete(deleteCourse);
 router.route('/all-courses').get(getAllCourses);

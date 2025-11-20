@@ -15,7 +15,10 @@ const googleAuthService = async (googleToken) => {
 
   const { email, name, picture } = ticket.getPayload();
 
+  // Check if user exists
   let user = await User.findOne({ email });
+
+  // Create new user if not found
   if (!user) {
     user = await User.create({
       name,
@@ -25,15 +28,16 @@ const googleAuthService = async (googleToken) => {
     });
   }
 
+  // Generate JWT tokens
   const accessToken = generateAccessToken(user);
   const refreshToken = generateRefreshToken(user);
 
+  // Save refresh token in DB
   user.refreshToken = refreshToken;
-  await user.save({ validateBeforeSave: false });
+  await user.save();
 
   return { user, accessToken, refreshToken };
 };
-
 
 const register = async (name, email, password) => {
   const existingUser = await User.findOne({ email });

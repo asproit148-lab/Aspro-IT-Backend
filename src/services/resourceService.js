@@ -1,5 +1,6 @@
 import Resource from '../models/resourceModel.js';
 import {uploadOnCloudinary} from '../utils/uploadImage.js';
+
 const addResource = async (title, filePath, description) => {
   
   let uploadedUrl = filePath;

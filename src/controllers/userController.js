@@ -4,30 +4,41 @@ import User from "../models/userModel.js";
 export const googleLogin = async (req, res) => {
   try {
     const { token } = req.body;
-    if (!token) return res.status(400).json({ message: "Google token required" });
+
+    if (!token) {
+      return res.status(400).json({ message: "Google token required" });
+    }
 
     const { user, accessToken, refreshToken } =
       await userService.googleAuthService(token);
 
-    const options = { httpOnly: true, secure: true, sameSite: "none" };
+    const cookieOptions = {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+    };
 
+    // Set cookies securely
     res
-      .cookie("accessToken", accessToken, options)
-      .cookie("refreshToken", refreshToken, options)
+      .cookie("accessToken", accessToken, cookieOptions)
+      .cookie("refreshToken", refreshToken, cookieOptions)
       .status(200)
       .json({
         message: "Google login successful",
+        user,
         accessToken,
         refreshToken,
-        user,
       });
+
   } catch (error) {
     console.error("Google login error:", error);
-    res
-      .status(500)
-      .json({ message: "Google login failed", error: error.message });
+    res.status(500).json({
+      message: "Google login failed",
+      error: error.message,
+    });
   }
 };
+
 
 export const registerUser = async (req, res) => {
   try {

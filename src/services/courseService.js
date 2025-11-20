@@ -2,265 +2,125 @@ import Course from "../models/courseModel.js";
 import User from "../models/userModel.js";
 import { uploadOnCloudinary } from "../utils/uploadImage.js";
 
-const addCourse = async (
+const addCourse = async ({
   Course_title,
-  Course_category,
   Course_description,
-  imageUrl,
   Course_type,
+  Skills,
   Modules,
   Course_cost,
   Discount,
-  FAQs
-) => {
-   if (typeof Modules === "string") {
-      Modules = JSON.parse(Modules);
-    }
-    if (typeof FAQs === "string") {
-      FAQs = JSON.parse(FAQs);
-    }
+  FAQs,
+  imageFile,
+}) => {
+  // Make mutable copies
+  let parsedSkills = Skills;
+  let parsedModules = Modules;
+  let parsedFAQs = FAQs;
 
-    let CourseImage;
-    if(imageUrl){
-     const uploadResult = await uploadOnCloudinary(imageUrl);
-    CourseImage= uploadResult.secure_url;
-    }
+  if (typeof parsedSkills === "string") {
+    try { parsedSkills = JSON.parse(parsedSkills); } catch {}
+  }
 
+  if (typeof parsedModules === "string") {
+    try { parsedModules = JSON.parse(parsedModules); } catch {}
+  }
+
+  if (typeof parsedFAQs === "string") {
+    try { parsedFAQs = JSON.parse(parsedFAQs); } catch {}
+  }
+
+  let uploadedImage = null;
+
+  if (imageFile) {
+    const uploadResult = await uploadOnCloudinary(imageFile);
+    uploadedImage = uploadResult.secure_url;
+  }
 
   const newCourse = new Course({
     Course_title,
-    Course_category,
     Course_description,
-    imageUrl:CourseImage,
     Course_type,
-    Modules,
+    Skills: parsedSkills,
+    Modules: parsedModules,
     Course_cost,
     Discount,
-    FAQs
+    FAQs: parsedFAQs,
+    imageUrl: uploadedImage,
   });
 
   await newCourse.save();
-
   return newCourse;
 };
 
-const getCourseInfo = async (courseId) => {
-  const course = await Course.findById(courseId);
 
-  if (!course) {
-    return null;
-  }
-
-  return course;
-}
-
-const updateCourse = async (data, courseId) => {
-  let { 
-    Course_title,
-    Course_category,
-    Course_description,
-    imageUrl,
-    Course_type,
-    Modules,
-    Course_cost,
-    Discount,
-    FAQs
-  } = data;
-
-  // Parse JSON fields if sent as strings
-  if (typeof Modules === "string") {
-    Modules = JSON.parse(Modules);
-  }
-
-  if (typeof FAQs === "string") {
-    FAQs = JSON.parse(FAQs);
-  }
-
-  // Find course by ID
-  const course = await Course.findById(courseId);
-  if (!course) {
-    throw new Error("Course not found");
-  }
-
-  // Handle image upload (if new image provided)
-  let CourseImage = course.imageUrl; // keep old image by default
-  if (imageUrl) {
-    const uploadResult = await uploadOnCloudinary(imageUrl);
-    CourseImage = uploadResult.secure_url;
-  }
-
-  // Update fields
-  course.Course_title = Course_title || course.Course_title;
-  course.Course_category = Course_category || course.Course_category;
-  course.Course_description = Course_description || course.Course_description;
-  course.imageUrl = CourseImage;
-  course.Course_type = Course_type || course.Course_type;
-  course.Modules = Modules || course.Modules;
-  course.Course_cost = Course_cost || course.Course_cost;
-  course.Discount = Discount || course.Discount;
-  course.FAQs = FAQs || course.FAQs;
-
-  // Save updated document
-  const updatedCourse = await course.save();
-  return updatedCourse;
+const getCourseInfo = async (id) => {
+  return await Course.findById(id);
 };
 
+const editCourse = async (id, data, imageFile) => {
+  if (typeof data.Skills === "string") data.Skills = JSON.parse(data.Skills);
+  if (typeof data.Modules === "string") data.Modules = JSON.parse(data.Modules);
+  if (typeof data.FAQs === "string") data.FAQs = JSON.parse(data.FAQs);
+
+  const course = await Course.findById(id);
+  if (!course) throw new Error("Course not found");
+
+  if (imageFile) {
+    const uploaded = await uploadOnCloudinary(imageFile);
+    course.imageUrl = uploaded.secure_url;
+  }
+
+  course.Course_title = data.Course_title || course.Course_title;
+  course.Course_description = data.Course_description || course.Course_description;
+  course.Course_type = data.Course_type || course.Course_type;
+  course.Skills = data.Skills || course.Skills;
+  course.Modules = data.Modules || course.Modules;
+  course.Course_cost = data.Course_cost || course.Course_cost;
+  course.Discount = data.Discount ?? course.Discount;
+  course.FAQs = data.FAQs || course.FAQs;
+
+  return await course.save();
+};
+
+const deleteCourse = async (courseId) => {
+  return await Course.findByIdAndDelete(courseId);
+};
+
+const getCourses = async () => {
+  return await Course.find();
+};
 
 const enrollCourse = async (userId, courseId) => {
   const user = await User.findById(userId);
   const course = await Course.findById(courseId);
 
-  if (!user || !course) {
-    throw new Error("User or course not found");
-  }
-
-  if (user.coursesEnrolled.includes(courseId)) {
-    throw new Error("User already enrolled in this course");
-  }
+  if (!user || !course) throw new Error("User or course not found");
+  if (user.coursesEnrolled.includes(courseId))
+    throw new Error("User already enrolled");
 
   user.coursesEnrolled.push(courseId);
   await user.save();
-  
+
   return user;
-}
-
-const deleteCourse = async (courseId) => {
-  const course = await Course.findByIdAndDelete(courseId);
-
-  if (!course) {
-    throw new Error("Course not found");
-  }
-
-  return course;
-}
-
-const getCourses = async () => {
-  const courses = await Course.find();
-
-  return courses;
-}
+};
 
 const getTotalEnrollments = async () => {
-  const result = await User.aggregate([
-    {
-      $project: {
-        // Safely handle missing or null coursesEnrolled arrays
-        enrollmentCount: {
-          $size: {
-            $ifNull: ["$coursesEnrolled", []]
-          }
-        }
-      }
-    },
-    {
-      $group: {
-        _id: null,
-        totalEnrollments: { $sum: "$enrollmentCount" }
-      }
-    }
-  ]);
-
-  // Return the total count or 0 if none
-  return result.length > 0 ? result[0].totalEnrollments : 0;
+  const users = await User.find();
+  return users.reduce((acc, u) => acc + u.coursesEnrolled.length, 0);
 };
-
 
 const getCourseEnrollmentCount = async (courseId) => {
-  const count = await User.countDocuments({
-    coursesEnrolled: courseId
-  });
-
-  return count;
+  return await User.countDocuments({ coursesEnrolled: courseId });
 };
 
-// Get enrollments per course (detailed breakdown)
-const getEnrollmentsPerCourse = async () => {
-  const result = await User.aggregate([
-    {
-      $unwind: "$coursesEnrolled"
-    },
-    {
-      $group: {
-        _id: "$coursesEnrolled",
-        enrollmentCount: { $sum: 1 }
-      }
-    },
-    {
-      $lookup: {
-        from: "courses",
-        localField: "_id",
-        foreignField: "_id",
-        as: "courseInfo"
-      }
-    },
-    {
-      $unwind: "$courseInfo"
-    },
-    {
-      $project: {
-        courseId: "$_id",
-        courseName: "$courseInfo.Course_title",
-        enrollmentCount: 1
-      }
-    },
-    {
-      $sort: { enrollmentCount: -1 }
-    }
-  ]);
-
-  return result;
-};
-
-// Get users with most enrollments
-const getUsersWithMostEnrollments = async (limit = 10) => {
-  const result = await User.aggregate([
-    {
-      $project: {
-        name: 1,
-        email: 1,
-        enrollmentCount: { $size: "$coursesEnrolled" }
-      }
-    },
-    {
-      $sort: { enrollmentCount: -1 }
-    },
-    {
-      $limit: limit
-    }
-  ]);
-
-  return result;
-};
-
-// Get enrollment statistics summary
-const getEnrollmentStats = async () => {
-  const [totalEnrollments, totalUsers, usersWithEnrollments] = await Promise.all([
-    getTotalEnrollments(),
-    User.countDocuments(),
-    User.countDocuments({ coursesEnrolled: { $ne: [] } })
-  ]);
-
-  const averageEnrollmentsPerUser = totalUsers > 0 
-    ? (totalEnrollments / totalUsers).toFixed(2) 
-    : 0;
-
-  return {
-    totalEnrollments,
-    totalUsers,
-    usersWithEnrollments,
-    usersWithoutEnrollments: totalUsers - usersWithEnrollments,
-    averageEnrollmentsPerUser
-  };
-};
-
-
-export default { 
-  addCourse, 
-  getCourseInfo, 
-  updateCourse, 
-  enrollCourse, 
-  deleteCourse, 
-  getCourses ,
+export default {
+  addCourse,
+  getCourseInfo,
+  editCourse,
+  deleteCourse,
+  getCourses,
+  enrollCourse,
   getTotalEnrollments,
-  getCourseEnrollmentCount
+  getCourseEnrollmentCount,
 };

@@ -3,10 +3,10 @@ import * as bannerService from "../services/bannerService.js";
 
 export const createBanner = async (req, res) => {
 
-    const{title,description}=req.body;
-    const{image}=req.file;
+    const{title}=req.body;
+    const{image}=req.file?req.file:null;
     console.log(req.file);
-    const banner = await bannerService.addBanner(title,description,image);
+    const banner = await bannerService.addBanner(title,req.file);
     return res.status(201).json({ message: "Banner added successfully", banner });
 };
 
@@ -36,5 +36,14 @@ export const updateBannner=async(req,res)=>{
     res.status(200).json({ message: "Banner update successfully" });
   } catch (err) {
     res.status(500).json({ message: "Failed to update banner", error: err.message });
+  }
+}
+
+export const totalBanners=async(req,res)=>{
+  try {
+    const total=await bannerService.totalBanners();
+    res.status(200).json({message:"Total Banners fetched",total});
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch total banners", error: err.message });
   }
 }

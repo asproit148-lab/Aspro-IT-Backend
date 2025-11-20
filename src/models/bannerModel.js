@@ -10,9 +10,6 @@ const bannerSchema = new mongoose.Schema({
     type: String, // image URL
     required: true
   },
-  description: {
-    type: String
-  },
   isActive: {
     type: Boolean,
     default: true // only active banners are shown on homepage

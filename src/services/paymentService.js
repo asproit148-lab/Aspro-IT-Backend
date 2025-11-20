@@ -1,9 +1,11 @@
 import Payment from "../models/paymentModel.js";
 import User from "../models/userModel.js";
 import Course from "../models/courseModel.js";
+import Enrollment from "../models/enrollmentModel.js";
 import { uploadOnCloudinary } from "../utils/uploadImage.js";
 import {  sendEmail } from "../services/emailService.js";
 import {createTransporter} from '../utils/sendEmail.js'
+import { generateEnrollmentId } from "../utils/generateEnrollmentId.js";
 
 const submitPayment = async (userId, courseId, paymentScreenshot) => {
  
@@ -50,40 +52,59 @@ const submitPayment = async (userId, courseId, paymentScreenshot) => {
 };
 
 const approvePayment = async (paymentId) => {
+  // Find payment
   const payment = await Payment.findById(paymentId);
-
-  if (!payment) {
-    throw new Error("Payment not found");
-  }
-
-  if (payment.status === "approved") {
-    throw new Error("Payment already processed");
-  }
+  if (!payment) throw new Error("Payment not found");
+  if (payment.status === "approved") throw new Error("Payment already processed");
 
   // Update payment status
   payment.status = "approved";
   payment.approvedAt = new Date();
   await payment.save();
 
-  // Enroll user in course
+  // Find user
   const user = await User.findById(payment.userId);
-  if (!user.coursesEnrolled.includes(payment.courseId)) {
-    user.coursesEnrolled.push(payment.courseId);
-    await user.save();
-  }
-  const transporter = createTransporter();
+  if (!user) throw new Error("User not found");
 
-  const info = await sendEmail(transporter,{
+  // Generate enrollment ID
+  const enrollmentId = generateEnrollmentId(user._id, payment.courseId);
+
+  // Save enrollment
+  const enrollment = await Enrollment.create({
+    user: user._id,
+    course: payment.courseId,
+    enrollmentId,
+  });
+
+  // Add to user's coursesEnrolled with enrollmentId
+  user.coursesEnrolled.push({
+    courseId: payment.courseId,
+    enrollmentId,
+    enrolledAt: new Date(),
+  });
+  await user.save();
+
+  // Send email to user
+  const transporter = createTransporter();
+  const info = await sendEmail(transporter, {
     to: user.email,
-      subject: "You have successfully enrolled in the course",
-      text: `Dear [${user.name}],
-Thank you for applying to the [Course name] course. Your payment has been approved successfully and so your enrolment has been confirmed.
+    subject: "You have successfully enrolled in the course",
+    text: `Dear ${user.name},
+
+Your payment has been approved successfully and your enrollment is confirmed.
+
+Course ID: ${payment.courseId}
+Enrollment ID: ${enrollmentId}
+
+You can use this enrollment ID to download your certificate.
+
 For any queries, contact: asproits@gmail.com
 
 Regards,
-AsproIT`});
+AsproIT`,
+  });
 
-  return {payment,info};
+  return { payment, enrollment, info };
 };
 
 const rejectPayment = async (paymentId) => {

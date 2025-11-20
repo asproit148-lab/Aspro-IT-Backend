@@ -22,8 +22,9 @@ const userSchema = new mongoose.Schema({
   },
   coursesEnrolled: [
     {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Course", // Reference to Course model
+       courseId: { type: mongoose.Schema.Types.ObjectId, ref: "Course" },
+      enrollmentId: { type: String, required: true },
+      enrolledAt: { type: Date, default: Date.now } // Reference to Course model
     },
   ],
   phone_no: {

@@ -1,14 +1,16 @@
 import Banner from "../models/bannerModel.js";
 import { uploadOnCloudinary } from "../utils/uploadImage.js";
 
-export const addBanner = async (title, description, image) => {
+export const addBanner = async (title, image) => {
   
   let BannerImage = null;
-  if(image){
+  console.log("Image File Received:", image);
+  if(image?.path){
     const uploadResult = await uploadOnCloudinary(image.path);
     BannerImage= uploadResult.secure_url;
   }
-  return await Banner.create({ title, description, image: BannerImage });
+  console.log("Uploaded Banner Image URL:", BannerImage);
+  return await Banner.create({ title, image: BannerImage });
 };
 
 export const getAllBanners = async () => {
@@ -21,4 +23,8 @@ export const deleteBanner = async (id) => {
 
 export const updateBanner = async (id, updates) => {
   return await Banner.findByIdAndUpdate(id, updates, { new: true });
+};
+
+export const totalBanners = async () => {
+  return await Banner.countDocuments();
 };

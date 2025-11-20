@@ -130,6 +130,6 @@ export {
   getAllCourses,
   getTotalEnrollments,
   getCourseEnrollments,
-  totalCourse
+  totalCourse,
 
 };

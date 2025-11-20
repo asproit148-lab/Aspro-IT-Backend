@@ -10,65 +10,72 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const downloadCertificate = async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const { courseId } = req.params;
+  const { name, enrollmentId } = req.body;
 
-    const user = await User.findById(userId);
-    const course = await Course.findById(courseId);
-
-    if (!user || !course) {
-      return res.status(404).json({ message: "User or course not found" });
-    }
-
-    if (!user.coursesEnrolled.includes(courseId)) {
-      return res.status(403).json({ message: "User not enrolled in this course" });
-    }
-
-    const certificatesDir = path.resolve("certificates");
-    if (!fs.existsSync(certificatesDir)) fs.mkdirSync(certificatesDir);
-
-    const certificatePath = path.join(
-      certificatesDir,
-      `${user.name}_${course.Course_title}.pdf`
-    );
-
-    // ✅ Use absolute path and PNG format
-const templatePath = path.join(__dirname, "..", "assets", "aspro_certificate.jpg");
-
-    console.log("Template Path:", templatePath);
-    if (!fs.existsSync(templatePath)) {
-      console.error("Template file not found!");
-      return res.status(500).json({ message: "Template not found" });
-    }
-
-    const doc = new PDFDocument({ size: "A4", layout: "landscape" });
-    const stream = fs.createWriteStream(certificatePath);
-    doc.pipe(stream);
-
-    // ✅ Draw background first
-    doc.image(templatePath, 0, 0, { width: 842});
-
-    // ✅ Then draw text over it
-    doc.fontSize(22).fillColor("black");
-    doc.text(user.name, 350, 237);
-doc.fontSize(20).text(course.Course_title, 300, 273);
-    doc.text("A+", 500, 310);
-
-    doc.fontSize(12);
-    doc.text(`${new Date().toLocaleDateString()}`, 613, 427);
-    doc.text(`${user._id}`, 635, 400);
-
-    doc.end();
-
-    stream.on("finish", () => {
-      res.download(certificatePath);
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error generating certificate" });
+  if (!name || !enrollmentId) {
+    return res.status(400).json({ message: "Name and enrollmentId are required" });
   }
+
+  // 1️⃣ Find user who has this enrollmentId
+  const user = await User.findOne({
+    name: name,
+    "coursesEnrolled.enrollmentId": enrollmentId
+  });
+
+  if (!user) {
+    return res.status(404).json({ message: "Invalid name or enrollmentId" });
+  }
+
+  // 2️⃣ Find the enrolled course details
+  const enrolledData = user.coursesEnrolled.find(
+    e => e.enrollmentId === enrollmentId
+  );
+
+  const course = await Course.findById(enrolledData.courseId);
+  if (!course) {
+    return res.status(404).json({ message: "Course not found for this enrollment" });
+  }
+
+  // 3️⃣ Prepare certificate output folder
+  const certificatesDir = path.resolve("certificates");
+  if (!fs.existsSync(certificatesDir)) fs.mkdirSync(certificatesDir);
+
+  const certificatePath = path.join(
+    certificatesDir,
+    `${user.name}_${course.Course_title}_${enrollmentId}.pdf`
+  );
+
+  // 4️⃣ Certificate Template File
+  const templatePath = path.join(__dirname, "..", "assets", "aspro_certificate.jpg");
+
+  if (!fs.existsSync(templatePath)) {
+    return res.status(500).json({ message: "Certificate template not found" });
+  }
+
+  // 5️⃣ Generate Certificate
+  const doc = new PDFDocument({ size: "A4", layout: "landscape" });
+  const stream = fs.createWriteStream(certificatePath);
+  doc.pipe(stream);
+
+  doc.image(templatePath, 0, 0, { width: 842 });
+
+  doc.fontSize(22).fillColor("black");
+  doc.text(user.name, 350, 237);
+  doc.fontSize(20).text(course.Course_title, 300, 273);
+  doc.text("A+", 500, 310);
+
+  doc.fontSize(12);
+  doc.text(`${new Date().toLocaleDateString()}`, 613, 427);
+  doc.text(`Enrollment: ${enrollmentId}`, 550, 400);
+
+  doc.end();
+
+  stream.on("finish", () => {
+    res.download(certificatePath);
+  });
 };
+
+
 
 
 const getUserCertificates = async (req, res) => {

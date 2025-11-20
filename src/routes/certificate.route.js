@@ -12,7 +12,7 @@ const router = express.Router();
 
 
 router.get('/my-certificates', getUserCertificates);
-router.get('/download/:courseId',authenticate,downloadCertificate);
+router.post('/download',downloadCertificate);
 router.get('/:certificateId', getCertificateById);
 
 // Public route for certificate verification

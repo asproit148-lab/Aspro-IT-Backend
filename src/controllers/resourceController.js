@@ -1,5 +1,5 @@
 import * as resourceService from '../services/resourceService.js';
-
+import axios from 'axios';
 // Add a resource
 const addResource = async (req, res) => {
   try {
@@ -51,4 +51,34 @@ const deleteResourceById = async (req, res) => {
   }
 };
 
-export { addResource, getAllResources, getResourceById, deleteResourceById };
+
+const downloadResource = async (req, res) => {
+  try {
+    const resource = await resourceService.getResourceById(req.params.id);
+    
+    // Fetch the file from Cloudinary
+    const response = await axios({
+      url: resource.url,
+      method: 'GET',
+      responseType: 'stream',
+      timeout: 30000 // 30 second timeout
+    });
+
+    // Set headers for download
+    const filename = `${resource.title}.pdf`;
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Length', response.headers['content-length']);
+
+    // Pipe the stream to response
+    response.data.pipe(res);
+    
+  } catch (err) {
+    console.error("Error downloading resource:", err);
+    if (!res.headersSent) {
+      res.status(500).json({ message: "Failed to download resource" });
+    }
+  }
+};
+
+export { addResource, getAllResources, getResourceById, deleteResourceById,downloadResource};

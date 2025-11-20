@@ -1,20 +1,11 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const enrollmentSchema = new mongoose.Schema({
-  name: String,
-  email: String,
-  phone_no: String,
-  course_name: String,
-  registration_no: {
-    type: String,
-    unique: true,
-    required: true
-  },
-  certificate_url: String,  
-  isCompleted: {
-    type: Boolean,
-    default: false
-  }
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  course: { type: mongoose.Schema.Types.ObjectId, ref: "Course", required: true },
+  enrollmentId: { type: String, required: true, unique: true },
+  enrolledAt: { type: Date, default: Date.now },
 });
 
-export default mongoose.model("Enrollment", enrollmentSchema);
+const Enrollment = mongoose.model("Enrollment", enrollmentSchema);
+export default Enrollment;

@@ -1,182 +1,128 @@
-import courseService from '../services/courseService.js'
+import courseService from "../services/courseService.js";
+
+const safeParse = (value) => {
+  try {
+    return value ? JSON.parse(value) : [];
+  } catch (err) {
+    return [];
+  }
+};
 
 const addCourse = async (req, res) => {
-  const {
-    Course_title,
-    Course_category,
-    Course_description,
-    Course_type,
-    Modules,
-    Course_cost,
-    Discount,
-    FAQs
-  } = req.body;
-
-  if (
-    !Course_title ||
-    !Course_category ||
-    !Course_description ||
-    !Course_type ||
-    !Course_cost ||
-    !Discount
-  ) {
-    return res.status(400).json({
-      success: false,
-      message: "Please provide all required fields: Course_title, Course_category, Course_description, Course_type, and Course_cost"
-    });
-  }
-
   try {
-        const imageUrl = req.file ? req.file.path : null;
-      console.log(imageUrl);
-    const course = await courseService.addCourse(
+    const {
       Course_title,
-      Course_category,
       Course_description,
-      imageUrl,
       Course_type,
-      Modules,
       Course_cost,
       Discount,
-      FAQs
-    );
+    } = req.body;
 
-    if (!course) {
-      return res.status(400).json({ message: "Failed to add the course" });
+    if (!Course_title || !Course_description || !Course_type || !Course_cost) {
+      return res.status(400).json({ message: "Missing required fields" });
     }
 
-    return res.status(200).json({ message: "Course added successfully", course });
+    // Parse Arrays Safely
+    const Skills = safeParse(req.body.Skills);
+    const Modules = safeParse(req.body.Modules);
+    const FAQs = safeParse(req.body.FAQs);
+
+    // File
+    const imageUrl = req.file ? req.file.path : null;
+
+    const course = await courseService.addCourse({
+      Course_title,
+      Course_description,
+      Course_type,
+      Skills,
+      Modules,
+      Course_cost,
+      Discount: Discount || 0,
+      FAQs,
+      imageUrl,
+    });
+
+    res.status(201).json({ success: true, message: "Course Added", course });
   } catch (err) {
-    console.error("Error adding course:", err);
-    res.status(500).json({ message: "Internal server error" });
+    console.error("ADD COURSE ERROR:", err);
+    res.status(500).json({ message: "Server Error" });
   }
-}
+};
 
 const getCourse = async (req, res) => {
   try {
     const { CourseId } = req.params;
+    const course = await courseService.getCourseInfo(CourseId);
 
-    if (!CourseId) {
-      return res.status(400).json({ message: "Please provide course id" });
-    }
+    if (!course) return res.status(404).json({ message: "Course not found" });
 
-    const courseinfo = await courseService.getCourseInfo(CourseId);
-
-    if (!courseinfo) {
-      return res.status(404).json({ message: "No course found" });
-    }
-
-    return res.status(200).json({ message: "Course info fetched successfully", courseinfo });
-  } catch (err) {
-    console.error("Error getting course:", err);
-    res.status(500).json({ message: "Internal server error" });
+    res.json({ success: true, course });
+  } catch {
+    res.status(500).json({ message: "Server Error" });
   }
-}
+};
 
 const editCourse = async (req, res) => {
-
-    const {
-      Course_title,
-      Course_category,
-      Course_description,
-      Course_type,
-      Modules,
-      Course_cost,
-      Discount,
-      FAQs
-    } = req.body;
-    console.log(req.file);
-    console.log(req.params);
+  try {
     const { courseId } = req.params;
-        const imageUrl = req.file ? req.file.path : null;
-    if (!courseId) {
-      return res.status(400).json({ message: "Please provide a courseId" });
-    }
+    const imageFile = req.file?.path || null;
 
-    let data = {};
+    const updated = await courseService.updateCourse(courseId, req.body, imageFile);
 
-    if (Course_title) data.Course_title = Course_title;
-    if (Course_category) data.Course_category = Course_category;
-    if (Course_description) data.Course_description = Course_description;
-    if (imageUrl) data.imageUrl = imageUrl;
-    if (Course_type) data.Course_type = Course_type;
-    if (Modules) data.Modules = Modules;
-    if (Course_cost) data.Course_cost = Course_cost;
-    if (Discount !== undefined) data.Discount = Discount;
-    if (FAQs) data.FAQs = FAQs;
+    res.json({ success: true, message: "Course Updated", updated });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
 
-    if (Object.keys(data).length === 0) {
-      return res.status(400).json({ message: "Please provide some fields to update" });
-    }
+const deleteCourse = async (req, res) => {
+  try {
+    const deleted = await courseService.deleteCourse(req.params.courseId);
 
-    const updatedData = await courseService.updateCourse(data, courseId);
+    if (!deleted) return res.status(404).json({ message: "Course not found" });
 
-    return res.status(200).json({ message: "Course updated successfully", updatedData });
-  
-}
+    res.json({ success: true, message: "Course deleted" });
+  } catch {
+    res.status(500).json({ message: "Server Error" });
+  }
+};
 
 const enrollCourse = async (req, res) => {
   try {
     const userId = req.user?._id;
     const { courseId } = req.body;
 
-    console.log(userId)
-    console.log(courseId)
+    const enrolled = await courseService.enrollCourse(userId, courseId);
 
-    if (!userId || !courseId) {
-      return res.status(404).json({ message: "Please provide all details" });
-    }
-
-    const enrolledCourse = await courseService.enrollCourse(userId, courseId);
-    res.json({ success: true, message: "Enrolled successfully!", enrolledCourse });
+    res.json({ success: true, enrolled });
   } catch (err) {
-    console.error("Error enrolling course:", err);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: "Server Error" });
   }
 };
 
-const deleteCourse = async (req, res) => {
-  try {
-    const { courseId } = req.params;
-
-    const course = await courseService.deleteCourse(courseId);
-
-    if (!course) {
-      return res.status(404).json({ message: "Course not found" });
-    }
-
-    return res.status(200).json({ message: "Course deleted successfully" });
-  } catch (err) {
-    console.error("Error deleting course:", err);
-    res.status(500).json({ message: "Internal server error" });
-  }
-}
-
 const getAllCourses = async (req, res) => {
-  try {
-    const courses = await courseService.getCourses();
+  const courses = await courseService.getCourses();
+  res.json({ success: true, courses });
+};
 
-    if (!courses || courses.length === 0) {
-      return res.status(404).json({ message: "No courses found" });
-    }
+const getTotalEnrollments = async (req, res) => {
+  const count = await courseService.getTotalEnrollments();
+  res.json({ success: true, total: count });
+};
 
-    return res.status(200).json({ message: "All courses fetched successfully", courses });
-  } catch (err) {
-    console.error("Error getting all courses:", err);
-    res.status(500).json({ message: "Internal server error" });
-  }
-}
+const getCourseEnrollments = async (req, res) => {
+  const count = await courseService.getCourseEnrollmentCount(req.params.courseId);
+  res.json({ success: true, count });
+};
 
-const getTotalEnrollments=async(req,res)=>{
-  const enrollments=await courseService.getTotalEnrollments();
-
-  return res.status(200).json({message:"total enrollments fetched successfully",enrollments});
-}
-
-const getCourseEnrollments=async(req,res)=>{
-  const {courseId}=req.params;
-  const enrollments=await courseService.getCourseEnrollmentCount(courseId);
-  return res.status(200).json({message:"course enrollments fetched successfully",enrollments});
-}
-
-export { addCourse, getCourse, editCourse, enrollCourse, deleteCourse, getAllCourses, getTotalEnrollments, getCourseEnrollments };
+export {
+  addCourse,
+  getCourse,
+  editCourse,
+  enrollCourse,
+  deleteCourse,
+  getAllCourses,
+  getTotalEnrollments,
+  getCourseEnrollments,
+};

@@ -1,7 +1,13 @@
 import express from 'express';
-import {addResource} from '../controllers/resourceController.js';
-const router=express.Router();
-import {upload} from "../middlewares/multerMiddleware.js";
+import { addResource, getAllResources, getResourceById, deleteResourceById } from '../controllers/resourceController.js';
+import { upload } from "../middlewares/multerMiddleware.js";
 
-router.route('/add-resource').post(upload.single('filePath'), addResource);
+const router = express.Router();
+
+// Routes
+router.post('/add-resource', upload.single('filePath'), addResource);
+router.get('/all-resources', getAllResources);
+router.get('/resource-info/:id', getResourceById);
+router.delete('/delete-resource/:id', deleteResourceById);
+
 export default router;

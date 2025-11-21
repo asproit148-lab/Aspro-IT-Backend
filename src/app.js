@@ -20,7 +20,7 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use( cors({ origin: ["http://localhost:5173","https://localhost:3000"], 
+app.use( cors({ origin: ["http://localhost:5173","https://localhost:3000","https://aspro-it-frontend.vercel.app"], 
   credentials: true, 
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE"], 
   allowedHeaders: ["Content-Type", "Authorization"] 

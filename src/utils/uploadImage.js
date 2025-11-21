@@ -8,7 +8,7 @@ cloudinary.config({
   cloud_name: process.env.CLOUDINARY_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
-  secure: true
+  secure: true,
 });
 
 const uploadOnCloudinary = async (localFilePath) => {
@@ -18,55 +18,63 @@ const uploadOnCloudinary = async (localFilePath) => {
       return null;
     }
 
+    // Check file exists
     if (!fs.existsSync(localFilePath)) {
       console.error("❌ File does not exist:", localFilePath);
       return null;
     }
 
+    // Check file size
     const stats = fs.statSync(localFilePath);
-    console.log("📄 File size:", stats.size, "bytes");
-    
     if (stats.size === 0) {
       console.error("❌ File is empty!");
       return null;
     }
 
-    console.log("⬆️  Uploading to Cloudinary:", localFilePath);
+    console.log("⬆️ Uploading:", localFilePath);
 
+    // Detect extension
     const ext = localFilePath.split('.').pop().toLowerCase();
     console.log("📎 File extension:", ext);
 
-    let resourceType = "raw";
+    // Decide resource type
+    let resourceType = "auto";
+
     if (["jpg", "jpeg", "png", "gif", "webp"].includes(ext)) {
       resourceType = "image";
+    } else if (ext === "pdf") {
+      resourceType = "raw";  // IMPORTANT
     }
 
-    console.log("🔧 Resource type:", resourceType);
+    console.log("🔧 Final resource type:", resourceType);
 
+    // Upload
     const response = await cloudinary.uploader.upload(localFilePath, {
       resource_type: resourceType,
       folder: "resources",
-      type: "upload", // This ensures it's publicly accessible
-      access_mode: "public", // THIS IS THE KEY - makes files public
+      type: "upload",
+      access_mode: "public",
+      ...(ext === "pdf" && { format: "pdf" })  // ensures correct metadata for PDFs
     });
 
     console.log("✅ Upload successful!");
     console.log("🔗 URL:", response.secure_url);
     console.log("🆔 Public ID:", response.public_id);
 
+    // Delete local file after successful upload
     fs.unlinkSync(localFilePath);
-    console.log("🗑️  Local file deleted");
+    console.log("🗑️ Local file deleted");
 
     return response;
-  } catch (error) {
-    console.error("❌ Cloudinary Upload Error:");
-    console.error("Message:", error.message);
-    console.error("Error:", error);
 
-    try { 
+  } catch (error) {
+    console.error("❌ Cloudinary Upload Error:", error.message);
+
+    // Clean file on error
+    try {
       if (fs.existsSync(localFilePath)) {
-        fs.unlinkSync(localFilePath); 
-        console.log("🗑️  Cleaned up local file after error");
+        fs.unlinkSync(localFilePath);
+        console.log("🗑️ cleaned up local file after error");
       }
     } catch (e) {
       console.error("Failed to delete local file:", e);

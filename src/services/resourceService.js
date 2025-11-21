@@ -8,6 +8,7 @@ const addResource = async (title, filePath, description) => {
     const uploadResult = await uploadOnCloudinary(filePath, 'resources');
     uploadedUrl = uploadResult.secure_url;
   }
+  console.log("Uploaded URL:", uploadedUrl);
   const resource = await Resource.create({
     title,
     url: uploadedUrl,

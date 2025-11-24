@@ -2,12 +2,17 @@
 import * as bannerService from "../services/bannerService.js";
 
 export const createBanner = async (req, res) => {
+  try {
+    const { title, url } = req.body;
+    const file = req.file || null;
+    console.log("File Received:", file);
 
-    const{title}=req.body;
-    const{image}=req.file?req.file:null;
-    console.log(req.file);
-    const banner = await bannerService.addBanner(title,req.file);
-    return res.status(201).json({ message: "Banner added successfully", banner });
+    const banner = await bannerService.addBanner(title, file, url);
+    res.status(201).json({ message: "Banner added successfully", banner });
+  } catch (err) {
+    console.error("Create Banner Error:", err);
+    res.status(500).json({ message: "Failed to create banner", error: err.message });
+  }
 };
 
 export const getBanners = async (req, res) => {

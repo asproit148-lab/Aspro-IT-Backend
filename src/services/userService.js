@@ -73,7 +73,7 @@ const login = async (email, password) => {
     accessToken,
     refreshToken,
     options,
-    user: { id: user._id, name: user.name, email: user.email },
+    user
   };
 };
 

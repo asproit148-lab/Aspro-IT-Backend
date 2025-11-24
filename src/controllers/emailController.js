@@ -1,5 +1,4 @@
-import { sendEmail } from "../services/emailService.js";
-import { createTransporter } from '../utils/sendEmail.js';
+import { sendEmail, createTransporter} from "../services/emailService.js";
 
 // Enquiry Form
 const EnquiryForm = async (req, res) => {

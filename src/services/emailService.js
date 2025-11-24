@@ -1,34 +1,49 @@
-import dotenv from 'dotenv';
-import { Resend } from 'resend';
+// services/emailService.js
+import nodemailer from "nodemailer";
 
-
-dotenv.config();
-
+// Create Transporter (works on RENDER)
 export function createTransporter() {
-  const apiKey = process.env.RESEND_API_KEY;
+  const user = process.env.EMAIL_USER;
+  const pass = process.env.EMAIL_PASS;
 
-  if (!apiKey) {
-    throw new Error('Missing RESEND_API_KEY environment variable');
+  if (!user || !pass) {
+    throw new Error("Missing EMAIL_USER or EMAIL_PASS environment variables");
   }
 
-  const resend = new Resend(apiKey);
-  return resend;
+  const transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 587,            // Render requires this
+    secure: false,        // IMPORTANT: Gmail + Render must use false
+    auth: {
+      user,
+      pass,
+    },
+  });
+
+  return transporter;
 }
 
-// send email
-export async function sendEmail(resend, { to, subject, text, html }) {
+// Send Email
+export async function sendEmail(transporter, { to, subject, text, html }) {
   try {
-    const info = await resend.emails.send({
-      from: process.env.EMAIL_FROM ,
+    const info = await transporter.sendMail({
+      from: process.env.EMAIL_USER,
       to,
       subject,
       text,
-      html
+      html,
     });
 
-    return info;
+    return {
+      success: true,
+      messageId: info.messageId,
+      info,
+    };
   } catch (error) {
-    console.error('Error sending email:', error);
-    throw error;
+    console.error("Email sending error:", error);
+    return {
+      success: false,
+      error: error.message,
+    };
   }
 }

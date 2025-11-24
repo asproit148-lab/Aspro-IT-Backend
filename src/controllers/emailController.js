@@ -1,6 +1,5 @@
-import { sendEmail, createTransporter} from "../services/emailService.js";
-
-
+import { sendEmail,createTransporter } from "../services/emailService.js";
+// Enquiry Form
 const EnquiryForm = async (req, res) => {
   const { name, email, phone_no, course_name, Mode_of_training } = req.body;
 

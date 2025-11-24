@@ -65,16 +65,36 @@ const getCourse = async (req, res) => {
 const editCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
-    const imageFile = req.file?.path || null;
 
-    const updated = await courseService.updateCourse(courseId, req.body, imageFile);
+    // Parse arrays safely
+    const Skills = safeParse(req.body.Skills);
+    const Modules = safeParse(req.body.Modules);
+    const FAQs = safeParse(req.body.FAQs);
 
-    res.json({ success: true, message: "Course Updated", updated });
+    const imageUrl = req.file ? req.file.path : null;
+
+    const payload = {
+      Course_title: req.body.Course_title,
+      Course_description: req.body.Course_description,
+      Course_type: req.body.Course_type,
+      Course_cost: req.body.Course_cost,
+      Discount: req.body.Discount,
+      Skills,
+      Modules,
+      FAQs,
+      imageUrl
+    };
+
+    const updated = await courseService.editCourse(courseId, payload, imageUrl);
+
+    res.json({ success: true, message: "Course Updated", course: updated });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server Error" });
+    console.error("EDIT COURSE ERROR:", err);
+    res.status(500).json({ message: "Server Error", error: err.message });
   }
 };
+
 
 const deleteCourse = async (req, res) => {
   try {

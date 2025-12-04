@@ -25,7 +25,7 @@ export const askAI = async (prompt) => {
       console.warn("⚠️ No scrapedData.txt found. Proceeding without context.");
     }
 
-    const fullPrompt = `You are AsproIt's official website chatbot. Answer questions ONLY using the website content below.
+    const fullPrompt = `You are AsproIt's official website chatbot. Answer questions ONLY using the website content below and asproIt is your own website.
 
 WHAT TO ANSWER (Questions about AsproIt):
 - Courses offered (Python, AI, DevOps, Cloud, Data Analytics, Cyber Security, etc.)

@@ -15,6 +15,7 @@ export const askAI = async (prompt) => {
     let context = "";
     try {
       context = fs.readFileSync("scrapedData.txt", "utf-8");
+      console.log(context);
     } catch (err) {
       console.warn("No scrapedData.txt found. Proceeding without context.");
     }

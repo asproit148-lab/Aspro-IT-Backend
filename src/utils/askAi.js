@@ -14,8 +14,23 @@ export const askAI = async (prompt) => {
 
     let context = "";
     try {
-      context = fs.readFileSync("scrapedData.txt", "utf-8");
-      console.log(context);
+      const rawContext = fs.readFileSync("scrapedData.txt", "utf-8");
+      
+      // Extract key information for better AI understanding
+      const phoneMatch = rawContext.match(/\+91[- ]?\d{10}|\d{10}/);
+      const emailMatch = rawContext.match(/[\w.-]+@[\w.-]+\.\w+/);
+      const addressMatch = rawContext.match(/Address[:\s]+(.*?)(?=Company|Contacts|$)/s);
+      
+      // Format context with highlighted key info
+      context = `
+KEY CONTACT INFORMATION:
+Phone: ${phoneMatch ? phoneMatch[0] : 'Not found'}
+Email: ${emailMatch ? emailMatch[0] : 'Not found'}
+Address: ${addressMatch ? addressMatch[1].trim().replace(/\s+/g, ' ') : 'Patna, India'}
+
+FULL WEBSITE CONTENT:
+${rawContext}
+`;
     } catch (err) {
       console.warn("No scrapedData.txt found. Proceeding without context.");
     }
@@ -40,7 +55,7 @@ WHAT TO REJECT (Anything else):
 - Technical tutorials not specific to AsproIt's offerings
 
 WEBSITE CONTENT:
-${context.slice(0, 15000)}
+${context.slice(0, 20000)}
 
 USER QUESTION: ${prompt}
 

@@ -1,6 +1,15 @@
 import userService from "../services/userService.js";
 import User from "../models/userModel.js";
 
+// Detect environment
+const isProd = process.env.NODE_ENV === "production";
+
+const cookieOptions = {
+  httpOnly: true,
+  secure: isProd,               // ❗ localhost = false
+  sameSite: isProd ? "none" : "lax", // ❗ localhost cannot use "none"
+};
+
 export const googleLogin = async (req, res) => {
   try {
     const { token } = req.body;
@@ -12,13 +21,6 @@ export const googleLogin = async (req, res) => {
     const { user, accessToken, refreshToken } =
       await userService.googleAuthService(token);
 
-    const cookieOptions = {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-    };
-
-    // Set cookies securely
     res
       .cookie("accessToken", accessToken, cookieOptions)
       .cookie("refreshToken", refreshToken, cookieOptions)
@@ -64,13 +66,14 @@ export const loginUser = async (req, res) => {
     const { email, password } = req.body;
     const data = await userService.login(email, password);
 
-    const { accessToken, refreshToken, options } = data;
+    const { accessToken, refreshToken } = data;
 
     res
-      .cookie("accessToken", accessToken, options)
-      .cookie("refreshToken", refreshToken, options)
+      .cookie("accessToken", accessToken, cookieOptions)
+      .cookie("refreshToken", refreshToken, cookieOptions)
       .status(200)
       .json(data);
+
   } catch (error) {
     res
       .status(400)
@@ -83,19 +86,21 @@ export const refreshAccessToken = async (req, res) => {
   try {
     const oldRefreshToken =
       req.cookies?.refreshToken || req.body.refreshToken;
+
     const data = await userService.refreshAccessToken(oldRefreshToken);
 
-    const { newAccessToken, newRefreshToken, options } = data;
+    const { newAccessToken, newRefreshToken } = data;
 
     res
-      .cookie("accessToken", newAccessToken, options)
-      .cookie("refreshToken", newRefreshToken, options)
+      .cookie("accessToken", newAccessToken, cookieOptions)
+      .cookie("refreshToken", newRefreshToken, cookieOptions)
       .status(200)
       .json({
         message: "Tokens refreshed successfully",
         accessToken: newAccessToken,
         refreshToken: newRefreshToken,
       });
+
   } catch (error) {
     res
       .status(403)
@@ -115,21 +120,23 @@ export const logoutUser = async (req, res) => {
     console.timeEnd("logout_time")
 
     res
-      .clearCookie("accessToken", options)
-      .clearCookie("refreshToken", options)
+      .clearCookie("accessToken", cookieOptions)
+      .clearCookie("refreshToken", cookieOptions)
       .status(200)
       .json({ success: true, message: "User logged out successfully" });
+
   } catch (error) {
     res.status(500).json({ message: "Server error during logout" });
   }
 };
 
-export const getUser=async(req,res)=>{
-  const userId=req.user?._id;
 
-  const user=await userService.getUserInfo(userId);
+export const getUser = async (req, res) => {
+  const userId = req.user?._id;
 
-  if(!user){
+  const user = await userService.getUserInfo(userId);
+
+  if (!user) {
     return res.status(404).json("user not found");
   }
 

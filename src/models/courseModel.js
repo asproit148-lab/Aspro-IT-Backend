@@ -58,8 +58,13 @@ const courseSchema = new mongoose.Schema({
 
 courseSchema.pre("save", function (next) {
   const cost = Number(this.Course_cost) || 0;
-  const discount = Number(this.Discount) || 0;
-  this.Final_cost = cost - discount;
+  const discountPercent = Number(this.Discount) || 0;
+
+  const discountedAmount = (cost * discountPercent) / 100;
+  const finalCost = cost - discountedAmount;
+
+  this.Final_cost = finalCost >= 0 ? finalCost : 0;
+
   next();
 });
 

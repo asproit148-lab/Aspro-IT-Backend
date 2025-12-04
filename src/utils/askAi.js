@@ -14,25 +14,15 @@ export const askAI = async (prompt) => {
 
     let context = "";
     try {
-      const rawContext = fs.readFileSync("scrapedData.txt", "utf-8");
+      context = fs.readFileSync("scrapedData.txt", "utf-8");
       
-      // Extract key information for better AI understanding
-      const phoneMatch = rawContext.match(/\+91[- ]?\d{10}|\d{10}/);
-      const emailMatch = rawContext.match(/[\w.-]+@[\w.-]+\.\w+/);
-      const addressMatch = rawContext.match(/Address[:\s]+(.*?)(?=Company|Contacts|$)/s);
+      console.log("✅ File read successfully!");
+      console.log("📊 File size:", context.length, "characters");
+      console.log("📄 Preview:", context.slice(0, 200) + "...\n");
       
-      // Format context with highlighted key info
-      context = `
-KEY CONTACT INFORMATION:
-Phone: ${phoneMatch ? phoneMatch[0] : 'Not found'}
-Email: ${emailMatch ? emailMatch[0] : 'Not found'}
-Address: ${addressMatch ? addressMatch[1].trim().replace(/\s+/g, ' ') : 'Patna, India'}
-
-FULL WEBSITE CONTENT:
-${rawContext}
-`;
     } catch (err) {
-      console.warn("No scrapedData.txt found. Proceeding without context.");
+      console.error("❌ Error reading file:", err.message);
+      console.warn("⚠️ No scrapedData.txt found. Proceeding without context.");
     }
 
     const fullPrompt = `You are AsproIt's official website chatbot. Answer questions ONLY using the website content below.
@@ -55,14 +45,18 @@ WHAT TO REJECT (Anything else):
 - Technical tutorials not specific to AsproIt's offerings
 
 WEBSITE CONTENT:
-${context.slice(0, 20000)}
+${context}
 
 USER QUESTION: ${prompt}
 
 INSTRUCTIONS:
-- If question is about AsproIt (courses, contact, pricing, location, enrollment, services), answer in 1-2 lines using ONLY the website content
+- Read the ENTIRE website content carefully above
+- If question is about AsproIt (courses, contact, pricing, location, enrollment, services), find the answer in the content and respond in 1-2 clear lines
+- Look for phone numbers in formats like: +91-9128444000 or similar
+- Look for email addresses ending in .com or similar domains
+- Look for addresses mentioning city names like Patna, India
 - If question is NOT about AsproIt, respond: "I can only answer questions about AsproIt. Please ask about our courses, services, pricing, or contact information."
-- NEVER make up information - only use what's in the website content above`;
+- NEVER make up information - only use what you find in the website content above`;
 
     const chatCompletion = await groq.chat.completions.create({
       model: "llama-3.1-8b-instant",
@@ -76,8 +70,8 @@ INSTRUCTIONS:
           content: fullPrompt
         }
       ],
-      temperature: 0.3, // Lower temperature for more consistent responses
-      max_tokens: 150, // Limit response length
+      temperature: 0.1, // Even lower for more accuracy
+      max_tokens: 200, // Slightly more room for complete answers
     });
 
     return chatCompletion.choices[0]?.message?.content || "No response.";

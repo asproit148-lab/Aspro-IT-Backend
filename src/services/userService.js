@@ -43,21 +43,30 @@ const register = async (name, email, password) => {
   const existingUser = await User.findOne({ email });
   if (existingUser) return "user already exists";
 
-  const hashedPassword = await bcrypt.hash(password, 12);
+  const hashedPassword = await bcrypt.hash(password, 8);
   const user = await User.create({ name, email, password: hashedPassword });
   return user;
 };
 
 
 const login = async (email, password) => {
+  console.time("TOTAL_LOGIN_TIME");
+
+  console.time("db_time")
   const user = await User.findOne({ email });
   if (!user) throw new Error("user does not exist");
+    console.timeEnd("db_time")
 
+  console.time("password_matching");
   const matchPassword = await bcrypt.compare(password, user.password);
   if (!matchPassword) throw new Error("incorrect password");
+    console.timeEnd("password_matching");
+
+  console.time("GENERATE_TOKEN");
 
   const accessToken = generateAccessToken(user);
   const refreshToken = generateRefreshToken(user);
+  console.timeEnd("GENERATE_TOKEN");
 
   user.refreshToken = refreshToken;
   await user.save({ validateBeforeSave: false });
@@ -67,6 +76,7 @@ const login = async (email, password) => {
     secure: true,
     sameSite: "none",
   };
+console.timeEnd("TOTAL_LOGIN_TIME");
 
   return {
     message: "User logged in successfully",

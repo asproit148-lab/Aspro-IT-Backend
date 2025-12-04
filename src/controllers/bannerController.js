@@ -3,10 +3,10 @@ import * as bannerService from "../services/bannerService.js";
 
 export const createBanner = async (req, res) => {
 
-    const{title}=req.body;
+    const{title,url}=req.body;
     const{image}=req.file?req.file:null;
     console.log(req.file);
-    const banner = await bannerService.addBanner(title,req.file);
+    const banner = await bannerService.addBanner(title,url,req.file);
     return res.status(201).json({ message: "Banner added successfully", banner });
 };
 

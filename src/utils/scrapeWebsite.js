@@ -40,5 +40,5 @@ export const scrapeWebsite = async (url) => {
 };
 
 
-  const URL = "http://localhost:5173";
+  const URL = "https://aspro-it-frontend.vercel.app/";
   scrapeWebsite(URL);

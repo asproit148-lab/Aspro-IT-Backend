@@ -106,11 +106,13 @@ export const refreshAccessToken = async (req, res) => {
 
 export const logoutUser = async (req, res) => {
   try {
+    console.time("logout_time")
     if (req.user?._id) {
       await User.findByIdAndUpdate(req.user._id, { $unset: { refreshToken: 1 } });
     }
 
     const options = { httpOnly: true, sameSite: "none", secure: true };
+    console.timeEnd("logout_time")
 
     res
       .clearCookie("accessToken", options)
@@ -133,4 +135,3 @@ export const getUser=async(req,res)=>{
 
   return res.status(200).json({message:"user fetched successfully",user});
 }
-

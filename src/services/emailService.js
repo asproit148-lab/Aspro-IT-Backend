@@ -1,49 +1,30 @@
-// services/emailService.js
 import nodemailer from "nodemailer";
 
-// Create Transporter (works on RENDER)
+// create transporter (synchronous)
 export function createTransporter() {
-  const user = process.env.EMAIL_USER;
-  const pass = process.env.EMAIL_PASS;
-
-  if (!user || !pass) {
-    throw new Error("Missing EMAIL_USER or EMAIL_PASS environment variables");
-  }
+    const port = Number(process.env.EMAIL_PORT);
 
   const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,            // Render requires this
-    secure: false,        // IMPORTANT: Gmail + Render must use false
+    host: process.env.EMAIL_HOST,
+    port: Number(process.env.EMAIL_PORT), 
+    secure: port === 465,
     auth: {
-      user,
-      pass,
-    },
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
+    }
   });
-
   return transporter;
 }
 
-// Send Email
+// send email
 export async function sendEmail(transporter, { to, subject, text, html }) {
-  try {
-    const info = await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to,
-      subject,
-      text,
-      html,
-    });
+  const info = await transporter.sendMail({
+    from: `"Your OTP" <${process.env.EMAIL_USER}>`,
+    to,
+    subject,
+    text,
+    html
+  });
 
-    return {
-      success: true,
-      messageId: info.messageId,
-      info,
-    };
-  } catch (error) {
-    console.error("Email sending error:", error);
-    return {
-      success: false,
-      error: error.message,
-    };
-  }
+  return info;
 }

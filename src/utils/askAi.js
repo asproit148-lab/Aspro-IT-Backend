@@ -13,60 +13,60 @@ export const askAI = async (prompt) => {
     let context = "";
     try {
       context = fs.readFileSync("src/utils/scrapedData.txt", "utf-8");
-      console.log("File loaded successfully. Size:", context.length);
     } catch (err) {
-      console.warn("No scrapedData.txt found. Using empty context.");
+      console.warn("⚠️ scrapedData.txt missing, using empty context.");
     }
 
     // ---------------------
-    // SYSTEM PROMPT (rules)
+    // STRICT BUT DYNAMIC SYSTEM PROMPT
     // ---------------------
     const systemPrompt = `
-You are AsproIt's strict website chatbot.
-You MUST answer ONLY using the website data provided below.
-Never guess, never invent information.
+You are AsproIt's official chatbot.
+You must answer using ONLY the website data provided.
+Do NOT hallucinate or invent any information.
 
-WHAT YOU CAN ANSWER:
-- Courses (Python, AI, Cloud, DevOps, Data Analytics, Cyber Security)
+RULES:
+- If the user's question CAN be answered using the website data, answer in 1–2 lines.
+- If the answer does NOT exist in the website data, reply:
+  "I can only answer questions based on the information provided on AsproIt's website."
+
+ALLOWED QUESTIONS:
+- Courses
+- Contact details
 - Pricing
-- Contact info (email, phone, address)
-- Internships, placement, trial classes
-- Enrollment process
-- Company info
+- Address
+- Internships / placement
+- Training modes
+- Enrollment
 
-WHAT YOU MUST REJECT:
-- General knowledge
-- Programming help
-- Anything not found inside the website data
-- Personal advice
-- Tech explanations unrelated to AsproIt
-
-STRICT RULE:
-If the information is NOT inside the website data, respond:
-"I can only answer questions about AsproIt based on the website content provided."
+FORBIDDEN:
+- Off-topic questions (history, general knowledge, coding help)
 `;
 
     // ---------------------
-    // CONTEXT (scraped data)
+    // PUT WEBSITE CONTENT AS ASSISTANT MESSAGE = KNOWLEDGE
     // ---------------------
-    const contextPrompt = `
-WEBSITE DATA (source of truth):
-${context}
-`;
+    const knowledgeMessage = {
+      role: "assistant",
+      content: `ASPROIT WEBSITE DATA:\n${context}`
+    };
 
+    // ---------------------
+    // AI CALL
+    // ---------------------
     const chatCompletion = await groq.chat.completions.create({
       model: "llama-3.1-8b-instant",
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "system", content: contextPrompt },
+        knowledgeMessage,
         { role: "user", content: prompt }
       ],
-      temperature: 0.1,
-      max_tokens: 200,
+      temperature: 0.2,
+      max_tokens: 300,
     });
 
     return chatCompletion.choices[0]?.message?.content || "No response.";
-
+    
   } catch (err) {
     console.error("Error in askAI:", err);
     throw new Error("Failed to get AI response");

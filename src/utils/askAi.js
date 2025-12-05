@@ -14,7 +14,7 @@ export const askAI = async (prompt) => {
 
     let context = "";
     try {
-      context = fs.readFileSync("scrapedData.txt", "utf-8");
+      context = fs.readFileSync("src/utils/scrapedData.txt", "utf-8");
       
       console.log("✅ File read successfully!");
       console.log("📊 File size:", context.length, "characters");

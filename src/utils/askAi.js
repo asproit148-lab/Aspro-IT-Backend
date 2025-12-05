@@ -20,7 +20,7 @@ export const askAI = async (prompt) => {
 
     let context = "";
     try {
-const filePath = path.join(__dirname, "scrapedData.txt");
+const filePath = path.resolve(process.cwd(), "src/utils/scrapedData.txt");
 console.log("Looking for file at:", filePath);
 
 context = fs.readFileSync(filePath, "utf-8");

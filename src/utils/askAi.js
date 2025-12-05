@@ -8,73 +8,65 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export const askAI = async (prompt) => {
   try {
-    if (!prompt?.trim()) {
-      throw new Error("Prompt is required");
-    }
+    if (!prompt?.trim()) throw new Error("Prompt is required");
 
     let context = "";
     try {
       context = fs.readFileSync("src/utils/scrapedData.txt", "utf-8");
-      
-      console.log("✅ File read successfully!");
-      console.log("📊 File size:", context.length, "characters");
-      console.log("📄 Preview:", context.slice(0, 200) + "...\n");
-      
+      console.log("File loaded successfully. Size:", context.length);
     } catch (err) {
-      console.error("❌ Error reading file:", err.message);
-      console.warn("⚠️ No scrapedData.txt found. Proceeding without context.");
+      console.warn("No scrapedData.txt found. Using empty context.");
     }
 
-    const fullPrompt = `You are AsproIt's official website chatbot. Answer questions ONLY using the website content below and asproIt is your own website.
+    // ---------------------
+    // SYSTEM PROMPT (rules)
+    // ---------------------
+    const systemPrompt = `
+You are AsproIt's strict website chatbot.
+You MUST answer ONLY using the website data provided below.
+Never guess, never invent information.
 
-WHAT TO ANSWER (Questions about AsproIt):
-- Courses offered (Python, AI, DevOps, Cloud, Data Analytics, Cyber Security, etc.)
-- Pricing and discounts
-- Contact information (phone, email, address, location)
-- Training modes (online/offline/bilingual)
-- Services (internships, mock interviews, job placement, self material)
-- Company information and mission
-- How to enroll or join trial classes
+WHAT YOU CAN ANSWER:
+- Courses (Python, AI, Cloud, DevOps, Data Analytics, Cyber Security)
+- Pricing
+- Contact info (email, phone, address)
+- Internships, placement, trial classes
+- Enrollment process
+- Company info
 
-WHAT TO REJECT (Anything else):
-- General knowledge questions (capitals, history, science, definitions)
-- Other companies or competitors
-- How-to guides unrelated to AsproIt  
-- Personal advice (health, finance, relationships)
-- Current events or news
-- Technical tutorials not specific to AsproIt's offerings
+WHAT YOU MUST REJECT:
+- General knowledge
+- Programming help
+- Anything not found inside the website data
+- Personal advice
+- Tech explanations unrelated to AsproIt
 
-WEBSITE CONTENT:
+STRICT RULE:
+If the information is NOT inside the website data, respond:
+"I can only answer questions about AsproIt based on the website content provided."
+`;
+
+    // ---------------------
+    // CONTEXT (scraped data)
+    // ---------------------
+    const contextPrompt = `
+WEBSITE DATA (source of truth):
 ${context}
-
-USER QUESTION: ${prompt}
-
-INSTRUCTIONS:
-- Read the ENTIRE website content carefully above
-- If question is about AsproIt (courses, contact, pricing, location, enrollment, services), find the answer in the content and respond in 1-2 clear lines
-- Look for phone numbers in formats like: +91-9128444000 or similar
-- Look for email addresses ending in .com or similar domains
-- Look for addresses mentioning city names like Patna, India
-- If question is NOT about AsproIt, respond: "I can only answer questions about AsproIt. Please ask about our courses, services, pricing, or contact information."
-- NEVER make up information - only use what you find in the website content above`;
+`;
 
     const chatCompletion = await groq.chat.completions.create({
       model: "llama-3.1-8b-instant",
       messages: [
-        {
-          role: "system",
-          content: "You are a strict website chatbot that ONLY answers questions based on provided website content. You refuse to answer any question not related to the website information given to you."
-        },
-        {
-          role: "user",
-          content: fullPrompt
-        }
+        { role: "system", content: systemPrompt },
+        { role: "system", content: contextPrompt },
+        { role: "user", content: prompt }
       ],
-      temperature: 0.1, // Even lower for more accuracy
-      max_tokens: 200, // Slightly more room for complete answers
+      temperature: 0.1,
+      max_tokens: 200,
     });
 
     return chatCompletion.choices[0]?.message?.content || "No response.";
+
   } catch (err) {
     console.error("Error in askAI:", err);
     throw new Error("Failed to get AI response");

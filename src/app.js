@@ -13,6 +13,7 @@ import couponRoutes from "./routes/coupon.route.js";
 import certificateRoutes from "./routes/certificate.route.js";
 import opportunityRoutes from "./routes/opportunity.route.js";
 import resourceRoutes from "./routes/resource.route.js";
+import questionRoutes from "./routes/question.route.js";
 
 const app = express();
 
@@ -53,6 +54,7 @@ app.use("/api/coupon", couponRoutes);
 app.use("/api/certificate", certificateRoutes);
 app.use("/api/opportunities", opportunityRoutes);
 app.use("/api/resources", resourceRoutes);
+app.use("/api/questions", questionRoutes);
 
 app.get("/", (req, res) => {
   res.send("✅ Aspro IT backend is running!");

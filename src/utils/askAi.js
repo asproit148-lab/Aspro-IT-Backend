@@ -1,6 +1,8 @@
 import Groq from "groq-sdk";
 import dotenv from "dotenv";
 import fs from "fs";
+import path from "path";
+
 
 dotenv.config();
 
@@ -9,10 +11,12 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 export const askAI = async (prompt) => {
   try {
     if (!prompt?.trim()) throw new Error("Prompt is required");
+const filePath = path.join(process.cwd(), "src", "utils", "scrapedData.txt");
 
     let context = "";
     try {
-      context = fs.readFileSync("src/utils/scrapedData.txt", "utf-8");
+      context = fs.readFileSync(filePath, "utf-8");
+      console.log(context);
     } catch (err) {
       console.warn("⚠️ scrapedData.txt missing, using empty context.");
     }

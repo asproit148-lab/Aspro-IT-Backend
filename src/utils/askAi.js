@@ -5,7 +5,7 @@ import fs from "fs";
 dotenv.config();
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
+console.log("🌟");
 export const askAI = async (prompt) => {
   try {
     if (!prompt?.trim()) {

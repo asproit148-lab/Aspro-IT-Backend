@@ -29,7 +29,6 @@ out/
 coverage/
 
 # Scraped data and temporary files
-scrapedData.txt
 temp/
 data/
 uploads/

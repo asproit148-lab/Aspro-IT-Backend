@@ -2,7 +2,7 @@ import Question from '../models/questionModel.js';
 import { uploadOnCloudinary } from '../utils/uploadImage.js';
 
 // Add a question
-const addQuestion = async (title, filePath, description) => {
+const addQuestion = async (title, filePath, description, category) => {
   let uploadedUrl = filePath;
   if (filePath) {
     const uploadResult = await uploadOnCloudinary(filePath);
@@ -13,6 +13,7 @@ const addQuestion = async (title, filePath, description) => {
     title,
     url: uploadedUrl,
     description,
+    category
   });
   return question;
 };

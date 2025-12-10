@@ -138,4 +138,29 @@ const getUserInfo=async(userId)=>{
   return user;
 }
 
-export default { register, login, refreshAccessToken, googleAuthService,getUserInfo };
+const changePasswordService=async(email,newPassword)=>{
+  const user = await User.findOne({email});
+  if(!user){
+    return "user not found";
+  }
+  if(user.canResetPassword===false){
+    return "password reset not authorized";
+
+  }
+  if(!user.password){
+    return "please login with google";
+  }
+  console.log(newPassword,user.password);
+
+  const isSamePassword=await bcrypt.compare(newPassword,user.password);
+  if(isSamePassword){
+    return "new password cannot be same as old password";
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 8);
+  user.password=hashedPassword;
+  user.canResetPassword=false;
+  await user.save();
+  return "password changed successfully";
+}
+export default { register, login, refreshAccessToken, googleAuthService,getUserInfo, changePasswordService };

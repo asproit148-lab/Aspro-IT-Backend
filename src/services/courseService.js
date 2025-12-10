@@ -8,7 +8,9 @@ const addCourse = async ({
   Course_type,
   Skills,
   Modules,
+  What_you_will_learn,
   Course_cost,
+  
   Discount,
   FAQs,
   imageUrl,
@@ -17,6 +19,7 @@ const addCourse = async ({
   let parsedSkills = Skills;
   let parsedModules = Modules;
   let parsedFAQs = FAQs;
+  let parsedLearnings = What_you_will_learn;
 
   if (typeof parsedSkills === "string") {
     try { parsedSkills = JSON.parse(parsedSkills); } catch {}
@@ -28,6 +31,10 @@ const addCourse = async ({
 
   if (typeof parsedFAQs === "string") {
     try { parsedFAQs = JSON.parse(parsedFAQs); } catch {}
+  }
+
+  if (typeof parsedLearnings === "string") {
+    try { parsedLearnings = JSON.parse(parsedLearnings); } catch {}
   }
 
   let uploadedImage = null;
@@ -44,6 +51,7 @@ console.log("Image File Received:", imageUrl);
     Course_type,
     Skills: parsedSkills,
     Modules: parsedModules,
+    What_you_will_learn: parsedLearnings,
     Course_cost,
     Discount,
     FAQs: parsedFAQs,
@@ -63,6 +71,7 @@ const editCourse = async (id, data, imageFile) => {
   if (typeof data.Skills === "string") data.Skills = JSON.parse(data.Skills);
   if (typeof data.Modules === "string") data.Modules = JSON.parse(data.Modules);
   if (typeof data.FAQs === "string") data.FAQs = JSON.parse(data.FAQs);
+  if (typeof data.What_you_will_learn === "string") data.What_you_will_learn = JSON.parse(data.What_you_will_learn);
 
   const course = await Course.findById(id);
   if (!course) throw new Error("Course not found");
@@ -80,6 +89,7 @@ const editCourse = async (id, data, imageFile) => {
   course.Course_cost = data.Course_cost || course.Course_cost;
   course.Discount = data.Discount ?? course.Discount;
   course.FAQs = data.FAQs || course.FAQs;
+  course.What_you_will_learn = data.What_you_will_learn || course.What_you_will_learn;
 
   return await course.save();
 };

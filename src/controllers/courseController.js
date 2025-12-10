@@ -14,17 +14,19 @@ const addCourse = async (req, res) => {
       Course_title,
       Course_description,
       Course_type,
+      What_you_will_learn,
       Course_cost,
       Discount,
     } = req.body;
 
-    if (!Course_title || !Course_description || !Course_type || !Course_cost) {
+    if (!Course_title || !Course_description || !Course_type || !Course_cost || !What_you_will_learn) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
     // Parse Arrays Safely
     const Skills = safeParse(req.body.Skills);
     const Modules = safeParse(req.body.Modules);
+    const learnings = safeParse(req.body.What_you_will_learn);
     const FAQs = safeParse(req.body.FAQs);
 
     // File
@@ -36,6 +38,7 @@ const addCourse = async (req, res) => {
       Course_type,
       Skills,
       Modules,
+      What_you_will_learn: learnings,
       Course_cost,
       Discount: Discount || 0,
       FAQs,
@@ -70,6 +73,7 @@ const editCourse = async (req, res) => {
     const Skills = safeParse(req.body.Skills);
     const Modules = safeParse(req.body.Modules);
     const FAQs = safeParse(req.body.FAQs);
+    const learnings = safeParse(req.body.What_you_will_learn);
 
     const imageUrl = req.file ? req.file.path : null;
 
@@ -79,6 +83,7 @@ const editCourse = async (req, res) => {
       Course_type: req.body.Course_type,
       Course_cost: req.body.Course_cost,
       Discount: req.body.Discount,
+      What_you_will_learn: learnings,
       Skills,
       Modules,
       FAQs,

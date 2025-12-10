@@ -24,6 +24,21 @@ const userSchema = new mongoose.Schema({
   phone_no: String,
   Mode_of_training: String,
   refreshToken: String,
+  isVerified:{
+    type:Boolean,
+    default:false
+  },
+  otp:{
+    type:String
+  },
+  otpExpiry:{
+    type:Date
+  },
+  canResetPassword:{
+    type:Boolean,
+    default:false
+  }
+}, { timestamps: true
 });
 
 const User = mongoose.model("User", userSchema);

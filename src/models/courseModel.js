@@ -20,6 +20,11 @@ const courseSchema = new mongoose.Schema({
     enum: ["Online", "Offline"],
     required: true,
   },
+  What_you_will_learn: [
+    {
+      type: String,
+    }
+  ],
 
   Skills: [
     {

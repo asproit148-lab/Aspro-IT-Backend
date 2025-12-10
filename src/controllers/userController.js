@@ -142,3 +142,25 @@ export const getUser = async (req, res) => {
 
   return res.status(200).json({message:"user fetched successfully",user});
 }
+
+export const changePassword = async (req, res) => {
+  const { email, newPassword } = req.body;
+
+  if (!email || !newPassword) {
+    return res.status(400).json({
+      message: "email and new password required",
+    });
+  }
+
+  const result = await userService.changePasswordService(email, newPassword);
+
+  if (result === "user not found") {
+    return res.status(404).json({ message: result });
+  }
+
+  if (result === "new password cannot be same as old password") {
+    return res.status(400).json({ message: result });
+  }
+
+  return res.status(200).json({ message: result });
+};

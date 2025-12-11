@@ -2,20 +2,20 @@ import * as questionService from '../services/questionService.js';
 import axios from 'axios';
 // Add a question
 const addQuestion = async (req, res) => {
-  try {
-    const { title, description } = req.body;
-    const filePath = req.file ? req.file.path : null;
+  try {
+    const { title, description, category } = req.body; 
+    const filePath = req.file ? req.file.path : null;
 
-    if (!title || !description || !filePath) {
-      return res.status(400).json({ error: "Please provide all fields" });
-    }
+    if (!title || !description || !category || !filePath) { 
+      return res.status(400).json({ error: "Please provide all fields, including category" });
+    }
 
-    const question = await questionService.addQuestion(title, filePath, description);
-    return res.status(200).json({ message: "Question added successfully", question });
-  } catch (err) {
-    console.error("Error adding question:", err);
-    res.status(500).json({ message: "Internal server error" });
-  }
+    const question = await questionService.addQuestion(title, filePath, description, category); // 👈 FIX 3: Pass category
+    return res.status(200).json({ message: "Question added successfully", question });
+  } catch (err) {
+    console.error("Error adding question:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
 };
 
 // Get all questions
@@ -27,6 +27,23 @@ const getAllQuestions = async (req, res) => {
     console.error("Error fetching questions:", err);
     res.status(500).json({ message: "Internal server error" });
   }
+};
+
+const getQuestionsByCourseId = async (req, res) => {
+    try {
+        const courseId = req.params.courseId; // Extract courseId from URL
+        
+        // Call the new service function
+        const questions = await questionService.getQuestionsByCategory(courseId); 
+
+        return res.status(200).json({ 
+            message: `Questions for course ${courseId} fetched successfully`,
+            questions 
+        });
+    } catch (err) {
+        console.error("Error fetching questions by course ID:", err);
+        res.status(500).json({ message: "Internal server error" });
+    }
 };
 
 // Get single question by ID
@@ -81,4 +98,4 @@ const downloadQuestion = async (req, res) => {
   }
 };
 
-export { addQuestion, getAllQuestions, getQuestionById, deleteQuestionById, downloadQuestion};
+export { addQuestion, getAllQuestions, getQuestionById, deleteQuestionById, downloadQuestion, getQuestionsByCourseId};

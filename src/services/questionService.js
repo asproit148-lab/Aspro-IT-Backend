@@ -24,6 +24,13 @@ const getAllQuestions = async () => {
   return questions;
 };
 
+// Get questions by category/courseId
+const getQuestionsByCategory = async (category) => {
+    // MongoDB query to find all questions where the category matches the provided ID
+    const questions = await Question.find({ category: category }).sort({ createdAt: -1 });
+    return questions;
+};
+
 // Get single question by ID
 const getQuestionById = async (id) => {
   const question = await Question.findById(id);
@@ -38,4 +45,4 @@ const deleteQuestionById = async (id) => {
   return deleted;
 };
 
-export { addQuestion, getAllQuestions, getQuestionById, deleteQuestionById };
+export { addQuestion, getAllQuestions, getQuestionById, deleteQuestionById, getQuestionsByCategory};

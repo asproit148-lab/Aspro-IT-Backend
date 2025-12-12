@@ -2,14 +2,29 @@
 import * as bannerService from "../services/bannerService.js";
 
 export const createBanner = async (req, res) => {
- 
-    const{title,url}=req.body;
-    const{image}=req.file?req.file:null;
-    console.log(req.file);
-    const banner = await bannerService.addBanner(title,url,req.file);
-    return res.status(201).json({ message: "Banner added successfully", banner });
+  try {
+    // Extract title and url from req.body
+    const { title, url } = req.body;
+    // req.file holds the uploaded file object (because of upload.single('image'))
+    const file = req.file || null; 
+    
+    // Check if essential fields are present
+    if (!title || !url || !file) {
+        return res.status(400).json({ message: "Missing required fields: title, url, or image." });
+    }
 
-}
+    console.log("Incoming file for banner:", file);
+    
+    // Pass arguments in the correct order: title, file (image), url
+    const banner = await bannerService.addBanner(title, file, url); 
+    
+    return res.status(201).json({ message: "Banner added successfully", banner });
+
+  } catch (error) {
+     console.error("Error creating banner:", error);
+     return res.status(500).json({ message: "Failed to add banner", error: error.message });
+  }
+};
 
 export const getBanners = async (req, res) => {
   try {

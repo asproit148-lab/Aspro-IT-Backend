@@ -1,43 +1,54 @@
 import paymentService from '../services/paymentService.js';
 
 const submitPayment = async (req, res) => {
-  try {
-    const userId = req.user?._id; // From auth middleware
-    const { courseId } = req.params;
-    const paymentScreenshot = req.file?.path; // From multer upload
+  try {
+    const userId = req.user?._id; 
+    const { courseId } = req.params;
+    const paymentScreenshot = req.file?.path; 
 
-    if (!userId || !courseId || !paymentScreenshot) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide all required fields: courseId and payment screenshot"
-      });
-    }
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required: User ID is missing (check auth middleware)."
+      });
+    }
 
-    const payment = await paymentService.submitPayment(
-      userId,
-      courseId,
-      paymentScreenshot
-    );
+    if (!courseId || !paymentScreenshot) {
+      const missingFields = [];
+      if (!courseId) missingFields.push("courseId (URL parameter)");
+      if (!paymentScreenshot) missingFields.push("paymentScreenshot (file upload)");
 
-    return res.status(201).json({
-      success: true,
-      message: "Payment submitted successfully. Awaiting admin approval.",
-      payment
-    });
-  } catch (err) {
-    console.error("Error submitting payment:", err);
-    res.status(400).json({ 
-      success: false,
-      message: err.message || "Failed to submit payment" 
-    });
-  }
+      return res.status(400).json({
+        success: false,
+        message: `Missing required data: ${missingFields.join(' and ')}.`,
+      });
+    }
+
+    const payment = await paymentService.submitPayment(
+      userId,
+      courseId,
+      paymentScreenshot 
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: "Payment submitted successfully. Awaiting admin approval.",
+      payment
+    });
+
+  } catch (err) {
+    console.error("Error submitting payment:", err.message);
+    res.status(400).json({ 
+      success: false,
+      message: err.message || "Failed to submit payment due to an internal error." 
+    });
+  }
 };
 
 const approvePayment = async (req, res) => {
   try {
     const { paymentId } = req.params;
     
-
     if (!paymentId) {
       return res.status(400).json({ 
         success: false,

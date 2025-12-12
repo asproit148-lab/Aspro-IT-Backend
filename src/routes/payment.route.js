@@ -14,7 +14,7 @@ import {authenticate} from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-router.post('/submit/:courseId',authenticate,upload.single('paymentScreenshot'), submitPayment);
+router.post('/submit/:courseId', upload.single('paymentScreenshot'), authenticate, submitPayment);
 router.get('/my-payments', getUserPayments);
 router.get('/:paymentId', getPaymentById);
 

@@ -19,27 +19,29 @@ const addBlog=async(title,content,file)=>{
 }
 
 const updateBlog=async(title,content,file,blogId)=>{
-  const blog=await Blog.findById(blogId);
+    // 1. Fetch the existing blog document
+    const blog=await Blog.findById(blogId);
 
- if(!blog){
-    throw new Error("blog not found");
-  }
-  if (file) {
-    const uploadResult = await uploadOnCloudinary(file.path);
-    Blog.BlogImage= uploadResult.secure_url;
-  
+    if(!blog){
+        throw new Error("Blog not found");
+    }
 
+    // 2. Handle Image Update
+    if (file) {
+        const uploadResult = await uploadOnCloudinary(file.path);
+        // *** CRITICAL FIX: Update the specific document's property ***
+        blog.BlogImage = uploadResult.secure_url; 
+    }
 
-  blog.set({
-    Blog_title:title,
-    Blog_content:content,
-  });
+    // 3. Update Text Content (can be outside the file check)
+    // Update the properties directly on the document
+    blog.Blog_title = title; 
+    blog.Blog_content = content;
+    
+    // 4. Save the changes
+    const updatedBlog = await blog.save();
 
-  const updatedBlog=await blog.save();
-
-  return updatedBlog;
-
-}
+    return updatedBlog;
 }
 
 const deleteBlog=async(blogId)=>{

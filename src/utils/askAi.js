@@ -1,93 +1,352 @@
 import Groq from "groq-sdk";
 import dotenv from "dotenv";
 import fs from "fs";
-
-dotenv.config();
 import path from "path";
 import { fileURLToPath } from "url";
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-console.log("🌟");
+
+// Parse website content dynamically
+const parseWebsiteContent = (content) => {
+  const data = {
+    urls: {},
+    courses: [],
+    contact: {},
+    services: []
+  };
+
+  try {
+    // Extract URLs dynamically
+    const urlMatches = content.match(/https:\/\/[^\s\]]+/g) || [];
+    urlMatches.forEach(url => {
+      if (url.includes('/contact')) data.urls.contact = url;
+      else if (url.includes('/courses/enrollment') || url.includes('enrollment')) data.urls.enrollment = url;
+      else if (url.includes('#live-learning') || url.includes('/courses')) data.urls.courses = url;
+      else if (url.includes('vercel.app') && !data.urls.home) data.urls.home = url.split('#')[0].split('?')[0];
+    });
+
+    // Extract courses dynamically
+    const coursePattern = /([A-Za-z\s]+(?:Programming|security|AI|DevOps|Computing|Analytics))[^\n]*?(?:Bilingual|Online|Offline)[^\n]*?(Online|Offline)[^\n]*?₹([\d.]+)[^\n]*?₹([\d.]+)[^\n]*?(\d+)% OFF/gi;
+    let match;
+    while ((match = coursePattern.exec(content)) !== null) {
+      data.courses.push({
+        name: match[1].trim(),
+        mode: match[2],
+        discountedPrice: `₹${Math.round(parseFloat(match[3]))}`,
+        originalPrice: `₹${Math.round(parseFloat(match[4]))}`,
+        discount: `${match[5]}% OFF`
+      });
+    }
+
+    // Remove duplicates
+    data.courses = data.courses.filter((course, index, self) =>
+      index === self.findIndex(c => c.name === course.name)
+    );
+
+    // Extract contact information dynamically
+    const phoneMatch = content.match(/\+?\d{1,3}[-.\s]?\d{10}|\+?\d{10,}/);
+    if (phoneMatch) data.contact.phone = phoneMatch[0].replace(/\s/g, '');
+
+    const emailMatch = content.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+    if (emailMatch) data.contact.email = emailMatch[0];
+
+    const addressMatch = content.match(/(?:Address|Location)[:\s]*([^\n]+(?:Patna|India)[^\n]*)/i);
+    if (addressMatch) data.contact.address = addressMatch[1].trim().replace(/Company.*$/i, '');
+
+    // Extract services dynamically
+    const servicesPattern = /(?:Courses|Self Material|Mock Interview|Internship|Jobs|Live.*?Classes|Study Material|Placement)/gi;
+    const servicesFound = new Set();
+    let serviceMatch;
+    while ((serviceMatch = servicesPattern.exec(content)) !== null) {
+      servicesFound.add(serviceMatch[0]);
+    }
+    data.services = Array.from(servicesFound);
+
+  } catch (err) {
+    console.error("Error parsing content:", err);
+  }
+
+  return data;
+};
+
+// Detect intent from user message
+const detectIntent = (message) => {
+  const msg = message.toLowerCase().trim();
+  
+  const greetings = ['hi', 'hello', 'hey', 'hii', 'helo', 'namaste', 'good morning', 'good evening'];
+  if (greetings.some(g => msg === g || msg.startsWith(g + ' ') || msg.endsWith(' ' + g))) {
+    return 'greeting';
+  }
+  
+  const contactKeywords = ['contact', 'phone', 'mobile', 'number', 'call', 'email', 'mail', 'address', 'location', 'where', 'reach'];
+  if (contactKeywords.some(k => msg.includes(k))) {
+    return 'contact';
+  }
+  
+  const coursesKeywords = ['courses', 'all courses', 'what courses', 'available courses', 'list courses', 'show courses'];
+  if (coursesKeywords.some(k => msg.includes(k))) {
+    return 'courses_list';
+  }
+  
+  const courseNames = ['python', 'cyber', 'security', 'ai', 'generative', 'devops', 'cloud', 'data analytics', 'analytics'];
+  if (courseNames.some(c => msg.includes(c))) {
+    return 'course_detail';
+  }
+  
+  if (msg.includes('price') || msg.includes('cost') || msg.includes('fee') || msg.includes('discount') || msg.includes('offer')) {
+    return 'pricing';
+  }
+  
+  return 'general';
+};
+
+// Format response with dynamic data
+const formatResponse = (intent, aiResponse, userMessage, websiteData) => {
+  let response = {
+    text: aiResponse,
+    links: [],
+    type: intent
+  };
+  
+  switch(intent) {
+    case 'greeting':
+      response.text = `👋 Welcome to AsproIT!\n\n` +
+        `We offer Future-Ready Skills, On Your Schedule. Join thousands of students worldwide who choose AsproIT to learn, grow, and succeed.\n\n`;
+      
+      if (websiteData.courses.length > 0) {
+        response.text += `🎓 Our Courses:\n`;
+        websiteData.courses.forEach(course => {
+          response.text += `• ${course.name}\n`;
+        });
+        response.text += `\n`;
+      }
+      
+      if (websiteData.services.length > 0) {
+        response.text += `💼 We provide:\n`;
+        websiteData.services.slice(0, 6).forEach(service => {
+          response.text += `• ${service}\n`;
+        });
+        response.text += `\n`;
+      }
+      
+      response.text += `How can I help you today?`;
+      
+      if (websiteData.urls.courses) {
+        response.links.push({ text: "View All Courses", url: websiteData.urls.courses });
+      }
+      if (websiteData.urls.enrollment) {
+        response.links.push({ text: "Enroll Now", url: websiteData.urls.enrollment });
+      }
+      break;
+      
+    case 'contact':
+      response.text = `📞 **Contact Information**\n\n`;
+      
+      if (websiteData.contact.phone) {
+        response.text += `**Phone:** ${websiteData.contact.phone}\n`;
+        response.links.push({ text: "📱 Call Us", url: `tel:${websiteData.contact.phone}` });
+      }
+      
+      if (websiteData.contact.email) {
+        response.text += `**Email:** ${websiteData.contact.email}\n`;
+        response.links.push({ text: "📧 Email Us", url: `mailto:${websiteData.contact.email}` });
+      }
+      
+      if (websiteData.contact.address) {
+        response.text += `**Address:** ${websiteData.contact.address}\n`;
+      }
+      
+      response.text += `\nFeel free to reach out to us anytime!`;
+      
+      if (websiteData.urls.contact) {
+        response.links.push({ text: "🗺️ Visit Contact Page", url: websiteData.urls.contact });
+      }
+      break;
+      
+    case 'courses_list':
+      if (websiteData.courses.length > 0) {
+        const discount = websiteData.courses[0]?.discount || 'Special Discount';
+        response.text = `🎓 **Our Premium Courses** (${discount} - Limited Time!)\n\n`;
+        
+        websiteData.courses.forEach((course, i) => {
+          response.text += `${i + 1}. **${course.name}**\n` +
+            `   💰 ${course.discountedPrice} (was ${course.originalPrice})\n` +
+            `   📍 ${course.mode} | Bilingual\n\n`;
+        });
+        
+        response.text += `✨ All courses include:\n`;
+        if (websiteData.services.length > 0) {
+          websiteData.services.slice(0, 5).forEach(service => {
+            response.text += `• ${service}\n`;
+          });
+        }
+      } else {
+        response.text = `We offer premium IT courses with live classes, study materials, and placement support!`;
+      }
+      
+      if (websiteData.urls.courses) {
+        response.links.push({ text: "🔥 View All Courses", url: websiteData.urls.courses });
+      }
+      if (websiteData.urls.enrollment) {
+        response.links.push({ text: "🚀 Enroll Now", url: websiteData.urls.enrollment });
+      }
+      break;
+      
+    case 'course_detail':
+    case 'pricing':
+      const msg = userMessage.toLowerCase();
+      let foundCourse = null;
+      
+      // Find matching course dynamically
+      for (const course of websiteData.courses) {
+        const courseName = course.name.toLowerCase();
+        if (
+          (msg.includes('python') && courseName.includes('python')) ||
+          (msg.includes('cyber') && courseName.includes('cyber')) ||
+          (msg.includes('security') && courseName.includes('security')) ||
+          (msg.includes('ai') && courseName.includes('ai')) ||
+          (msg.includes('generative') && courseName.includes('generative')) ||
+          (msg.includes('devops') && courseName.includes('devops')) ||
+          (msg.includes('cloud') && courseName.includes('cloud')) ||
+          (msg.includes('data') && courseName.includes('data')) ||
+          (msg.includes('analytics') && courseName.includes('analytics'))
+        ) {
+          foundCourse = course;
+          break;
+        }
+      }
+      
+      if (foundCourse) {
+        response.text = `🔥 **${foundCourse.name}** - Limited Time Offer!\n\n` +
+          `💰 **Special Price:** ${foundCourse.discountedPrice}\n` +
+          `~~${foundCourse.originalPrice}~~ - Save ${foundCourse.discount}!\n` +
+          `📍 **Mode:** ${foundCourse.mode} | Bilingual\n\n` +
+          `✅ What's Included:\n`;
+        
+        if (websiteData.services.length > 0) {
+          websiteData.services.slice(0, 5).forEach(service => {
+            response.text += `• ${service}\n`;
+          });
+        }
+        
+        response.text += `\n⏰ **Don't miss out!** Seats are filling fast. Enroll today and kickstart your career! 🚀`;
+        
+        if (websiteData.urls.enrollment) {
+          response.links.push({ text: "🎯 Enroll Now - Limited Seats!", url: websiteData.urls.enrollment });
+        }
+        if (websiteData.urls.courses) {
+          response.links.push({ text: "📚 View All Courses", url: websiteData.urls.courses });
+        }
+      } else if (websiteData.courses.length > 0) {
+        response.text = `💰 **Course Pricing** (Limited Time Offer!)\n\n`;
+        websiteData.courses.forEach(course => {
+          response.text += `**${course.name}**\n` +
+            `${course.discountedPrice} (was ${course.originalPrice}) | ${course.mode}\n\n`;
+        });
+        response.text += `⚡ All courses are bilingual and include comprehensive training!\n\n` +
+          `🔥 Hurry! Limited seats available!`;
+        
+        if (websiteData.urls.enrollment) {
+          response.links.push({ text: "🚀 Enroll Now", url: websiteData.urls.enrollment });
+        }
+        if (websiteData.urls.courses) {
+          response.links.push({ text: "📖 View Course Details", url: websiteData.urls.courses });
+        }
+      }
+      break;
+      
+    default:
+      response.text = aiResponse;
+      if (aiResponse.includes("can only answer questions about AsproIt")) {
+        if (websiteData.urls.home) {
+          response.links.push({ text: "🏠 Go to Homepage", url: websiteData.urls.home });
+        }
+        if (websiteData.urls.courses) {
+          response.links.push({ text: "📚 Browse Courses", url: websiteData.urls.courses });
+        }
+      }
+  }
+  
+  return response;
+};
+
 export const askAI = async (prompt) => {
   try {
     if (!prompt?.trim()) {
       throw new Error("Prompt is required");
     }
 
+    // Read and parse website content
     let context = "";
+    let websiteData = { urls: {}, courses: [], contact: {}, services: [] };
+    
     try {
-      console.log("➡️ process.cwd():", process.cwd());
-console.log("➡️ __dirname:", __dirname);
-
-const filePath = path.join(process.cwd(), "scrapedData.txt");
-console.log("Looking for file at:", filePath);
-context = fs.readFileSync(filePath, "utf-8");
-      
-      console.log("✅ File read successfully!");
-      console.log("📊 File size:", context.length, "characters");
-      console.log("📄 Preview:", context.slice(0, 200) + "...\n");
-      
+      console.log(process.cwd());
+      const filePath = path.join(process.cwd(), "src/scrapedData.txt");
+      context = fs.readFileSync(filePath, "utf-8");
+      websiteData = parseWebsiteContent(context);
+      console.log("✅ Dynamic data extracted:", {
+        courses: websiteData.courses.length,
+        urls: Object.keys(websiteData.urls).length,
+        hasContact: !!websiteData.contact.phone
+      });
     } catch (err) {
-      console.error("❌ Error reading file:", err.message);
-      console.warn("⚠️ No scrapedData.txt found. Proceeding without context.");
+      console.warn("⚠️ Could not read scrapedData.txt:", err.message);
     }
 
-    const fullPrompt = `You are AsproIt's official website chatbot. Answer questions ONLY using the website content below and asproIt is your own website.
+    // Detect user intent
+    const intent = detectIntent(prompt);
+    console.log(`🎯 Detected intent: ${intent}`);
 
-WHAT TO ANSWER (Questions about AsproIt):
-- Courses offered (Python, AI, DevOps, Cloud, Data Analytics, Cyber Security, etc.)
-- Pricing and discounts
-- Contact information (phone, email, address, location)
-- Training modes (online/offline/bilingual)
-- Services (internships, mock interviews, job placement, self material)
-- Company information and mission
-- How to enroll or join trial classes
+    // Handle special cases with dynamic data
+    if (['greeting', 'contact', 'courses_list', 'course_detail', 'pricing'].includes(intent)) {
+      return formatResponse(intent, '', prompt, websiteData);
+    }
 
-WHAT TO REJECT (Anything else):
-- General knowledge questions (capitals, history, science, definitions)
-- Other companies or competitors
-- How-to guides unrelated to AsproIt  
-- Personal advice (health, finance, relationships)
-- Current events or news
-- Technical tutorials not specific to AsproIt's offerings
+    // For general queries, use AI
+    const fullPrompt = `You are AsproIT's official chatbot. Answer ONLY using the website content below.
 
 WEBSITE CONTENT:
 ${context}
 
 USER QUESTION: ${prompt}
 
-INSTRUCTIONS:
-- Read the ENTIRE website content carefully above
-- If question is about AsproIt (courses, contact, pricing, location, enrollment, services), find the answer in the content and respond in 1-2 clear lines
-- Look for phone numbers in formats like: +91-9128444000 or similar
-- Look for email addresses ending in .com or similar domains
-- Look for addresses mentioning city names like Patna, India
-- If question is NOT about AsproIt, respond: "I can only answer questions about AsproIt. Please ask about our courses, services, pricing, or contact information."
-- NEVER make up information - only use what you find in the website content above`;
+RULES:
+- If about AsproIT (courses, pricing, contact, enrollment), answer in 2-3 clear sentences
+- If NOT about AsproIT, say: "I can only answer questions about AsproIT. Please ask about our courses, services, pricing, or contact information."
+- Be helpful and encouraging
+- Never make up information`;
 
     const chatCompletion = await groq.chat.completions.create({
       model: "llama-3.1-8b-instant",
       messages: [
         {
           role: "system",
-          content: "You are a strict website chatbot that ONLY answers questions based on provided website content. You refuse to answer any question not related to the website information given to you."
+          content: "You are a helpful AsproIT chatbot that only answers questions about AsproIT courses and services."
         },
         {
           role: "user",
           content: fullPrompt
         }
       ],
-      temperature: 0.1, // Even lower for more accuracy
-      max_tokens: 200, // Slightly more room for complete answers
+      temperature: 0.1,
+      max_tokens: 200,
     });
 
-    return chatCompletion.choices[0]?.message?.content || "No response.";
+    const aiResponse = chatCompletion.choices[0]?.message?.content || "I'm here to help! Please ask about our courses or services.";
+    return formatResponse('general', aiResponse, prompt, websiteData);
+    
   } catch (err) {
-    console.error("Error in askAI:", err);
-    throw new Error("Failed to get AI response");
+    console.error("❌ Error in askAI:", err);
+    return {
+      text: "Sorry, I encountered an error. Please try again or contact our support team.",
+      links: [],
+      type: 'error'
+    };
   }
 };

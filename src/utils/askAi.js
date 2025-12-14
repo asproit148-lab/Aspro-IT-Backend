@@ -105,95 +105,96 @@ const detectIntent = (message) => {
   return 'general';
 };
 
-// Format response with dynamic data
+// Format response - Returns ONLY "reply" field as string (frontend expects res.reply)
 const formatResponse = (intent, aiResponse, userMessage, websiteData) => {
-  let response = {
-    text: aiResponse,
-    links: [],
-    type: intent
-  };
+  let reply = aiResponse;
   
   switch(intent) {
     case 'greeting':
-      response.text = `👋 Welcome to AsproIT!\n\n` +
+      reply = `👋 Welcome to AsproIT!\n\n` +
         `We offer Future-Ready Skills, On Your Schedule. Join thousands of students worldwide who choose AsproIT to learn, grow, and succeed.\n\n`;
       
       if (websiteData.courses.length > 0) {
-        response.text += `🎓 Our Courses:\n`;
+        reply += `🎓 Our Courses:\n`;
         websiteData.courses.forEach(course => {
-          response.text += `• ${course.name}\n`;
+          reply += `• ${course.name}\n`;
         });
-        response.text += `\n`;
+        reply += `\n`;
       }
       
       if (websiteData.services.length > 0) {
-        response.text += `💼 We provide:\n`;
+        reply += `💼 We provide:\n`;
         websiteData.services.slice(0, 6).forEach(service => {
-          response.text += `• ${service}\n`;
+          reply += `• ${service}\n`;
         });
-        response.text += `\n`;
+        reply += `\n`;
       }
       
-      response.text += `How can I help you today?`;
+      reply += `How can I help you today?`;
       
-      if (websiteData.urls.courses) {
-        response.links.push({ text: "View All Courses", url: websiteData.urls.courses });
-      }
-      if (websiteData.urls.enrollment) {
-        response.links.push({ text: "Enroll Now", url: websiteData.urls.enrollment });
+      // Add clickable links in text format
+      if (websiteData.urls.courses || websiteData.urls.enrollment) {
+        reply += `\n\n`;
+        if (websiteData.urls.courses) {
+          reply += `🔗 View All Courses: ${websiteData.urls.courses}\n`;
+        }
+        if (websiteData.urls.enrollment) {
+          reply += `🚀 Enroll Now: ${websiteData.urls.enrollment}`;
+        }
       }
       break;
       
     case 'contact':
-      response.text = `📞 **Contact Information**\n\n`;
+      reply = `📞 Contact Information\n\n`;
       
       if (websiteData.contact.phone) {
-        response.text += `**Phone:** ${websiteData.contact.phone}\n`;
-        response.links.push({ text: "📱 Call Us", url: `tel:${websiteData.contact.phone}` });
+        reply += `Phone: ${websiteData.contact.phone}\n`;
       }
       
       if (websiteData.contact.email) {
-        response.text += `**Email:** ${websiteData.contact.email}\n`;
-        response.links.push({ text: "📧 Email Us", url: `mailto:${websiteData.contact.email}` });
+        reply += `Email: ${websiteData.contact.email}\n`;
       }
       
       if (websiteData.contact.address) {
-        response.text += `**Address:** ${websiteData.contact.address}\n`;
+        reply += `Address: ${websiteData.contact.address}\n`;
       }
       
-      response.text += `\nFeel free to reach out to us anytime!`;
+      reply += `\nFeel free to reach out to us anytime!`;
       
+      // Add clickable links in text
       if (websiteData.urls.contact) {
-        response.links.push({ text: "🗺️ Visit Contact Page", url: websiteData.urls.contact });
+        reply += `\n\n🗺️ Visit Contact Page: ${websiteData.urls.contact}`;
       }
       break;
       
     case 'courses_list':
       if (websiteData.courses.length > 0) {
         const discount = websiteData.courses[0]?.discount || 'Special Discount';
-        response.text = `🎓 **Our Premium Courses** (${discount} - Limited Time!)\n\n`;
+        reply = `🎓 Our Premium Courses (${discount} - Limited Time!)\n\n`;
         
         websiteData.courses.forEach((course, i) => {
-          response.text += `${i + 1}. **${course.name}**\n` +
+          reply += `${i + 1}. ${course.name}\n` +
             `   💰 ${course.discountedPrice} (was ${course.originalPrice})\n` +
             `   📍 ${course.mode} | Bilingual\n\n`;
         });
         
-        response.text += `✨ All courses include:\n`;
+        reply += `✨ All courses include:\n`;
         if (websiteData.services.length > 0) {
           websiteData.services.slice(0, 5).forEach(service => {
-            response.text += `• ${service}\n`;
+            reply += `• ${service}\n`;
           });
         }
+        
+        // Add links in text
+        reply += `\n`;
+        if (websiteData.urls.courses) {
+          reply += `🔥 View All Courses: ${websiteData.urls.courses}\n`;
+        }
+        if (websiteData.urls.enrollment) {
+          reply += `🚀 Enroll Now: ${websiteData.urls.enrollment}`;
+        }
       } else {
-        response.text = `We offer premium IT courses with live classes, study materials, and placement support!`;
-      }
-      
-      if (websiteData.urls.courses) {
-        response.links.push({ text: "🔥 View All Courses", url: websiteData.urls.courses });
-      }
-      if (websiteData.urls.enrollment) {
-        response.links.push({ text: "🚀 Enroll Now", url: websiteData.urls.enrollment });
+        reply = `We offer premium IT courses with live classes, study materials, and placement support!`;
       }
       break;
       
@@ -222,57 +223,63 @@ const formatResponse = (intent, aiResponse, userMessage, websiteData) => {
       }
       
       if (foundCourse) {
-        response.text = `🔥 **${foundCourse.name}** - Limited Time Offer!\n\n` +
-          `💰 **Special Price:** ${foundCourse.discountedPrice}\n` +
-          `~~${foundCourse.originalPrice}~~ - Save ${foundCourse.discount}!\n` +
-          `📍 **Mode:** ${foundCourse.mode} | Bilingual\n\n` +
+        reply = `🔥 ${foundCourse.name} - Limited Time Offer!\n\n` +
+          `💰 Special Price: ${foundCourse.discountedPrice}\n` +
+          `Original: ${foundCourse.originalPrice} - Save ${foundCourse.discount}!\n` +
+          `📍 Mode: ${foundCourse.mode} | Bilingual\n\n` +
           `✅ What's Included:\n`;
         
         if (websiteData.services.length > 0) {
           websiteData.services.slice(0, 5).forEach(service => {
-            response.text += `• ${service}\n`;
+            reply += `• ${service}\n`;
           });
         }
         
-        response.text += `\n⏰ **Don't miss out!** Seats are filling fast. Enroll today and kickstart your career! 🚀`;
+        reply += `\n⏰ Don't miss out! Seats are filling fast. Enroll today and kickstart your career! 🚀`;
         
+        // Add links in text
+        reply += `\n\n`;
         if (websiteData.urls.enrollment) {
-          response.links.push({ text: "🎯 Enroll Now - Limited Seats!", url: websiteData.urls.enrollment });
+          reply += `🎯 Enroll Now: ${websiteData.urls.enrollment}\n`;
         }
         if (websiteData.urls.courses) {
-          response.links.push({ text: "📚 View All Courses", url: websiteData.urls.courses });
+          reply += `📚 View All Courses: ${websiteData.urls.courses}`;
         }
       } else if (websiteData.courses.length > 0) {
-        response.text = `💰 **Course Pricing** (Limited Time Offer!)\n\n`;
+        reply = `💰 Course Pricing (Limited Time Offer!)\n\n`;
         websiteData.courses.forEach(course => {
-          response.text += `**${course.name}**\n` +
+          reply += `${course.name}\n` +
             `${course.discountedPrice} (was ${course.originalPrice}) | ${course.mode}\n\n`;
         });
-        response.text += `⚡ All courses are bilingual and include comprehensive training!\n\n` +
+        reply += `⚡ All courses are bilingual and include comprehensive training!\n\n` +
           `🔥 Hurry! Limited seats available!`;
         
+        // Add links in text
+        reply += `\n\n`;
         if (websiteData.urls.enrollment) {
-          response.links.push({ text: "🚀 Enroll Now", url: websiteData.urls.enrollment });
+          reply += `🚀 Enroll Now: ${websiteData.urls.enrollment}\n`;
         }
         if (websiteData.urls.courses) {
-          response.links.push({ text: "📖 View Course Details", url: websiteData.urls.courses });
+          reply += `📖 View Course Details: ${websiteData.urls.courses}`;
         }
       }
       break;
       
     default:
-      response.text = aiResponse;
+      reply = aiResponse;
       if (aiResponse.includes("can only answer questions about AsproIt")) {
+        reply += `\n\n`;
         if (websiteData.urls.home) {
-          response.links.push({ text: "🏠 Go to Homepage", url: websiteData.urls.home });
+          reply += `🏠 Homepage: ${websiteData.urls.home}\n`;
         }
         if (websiteData.urls.courses) {
-          response.links.push({ text: "📚 Browse Courses", url: websiteData.urls.courses });
+          reply += `📚 Browse Courses: ${websiteData.urls.courses}`;
         }
       }
   }
   
-  return response;
+  // Return ONLY reply string (frontend expects res.reply)
+  return { reply: reply };
 };
 
 export const askAI = async (prompt) => {
@@ -286,7 +293,6 @@ export const askAI = async (prompt) => {
     let websiteData = { urls: {}, courses: [], contact: {}, services: [] };
     
     try {
-      console.log(process.cwd());
       const filePath = path.join(process.cwd(), "src/scrapedData.txt");
       context = fs.readFileSync(filePath, "utf-8");
       websiteData = parseWebsiteContent(context);
@@ -344,9 +350,7 @@ RULES:
   } catch (err) {
     console.error("❌ Error in askAI:", err);
     return {
-      text: "Sorry, I encountered an error. Please try again or contact our support team.",
-      links: [],
-      type: 'error'
+      reply: "Sorry, I encountered an error. Please try again or contact our support team."
     };
   }
 };

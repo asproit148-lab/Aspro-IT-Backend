@@ -1,5 +1,11 @@
 import Question from '../models/questionModel.js';
 import { uploadOnCloudinary } from '../utils/uploadImage.js';
+import { indexToPinecone, deleteFromPinecone } from '../utils/indexer.js';
+
+
+const questionToText = (question) => {
+  return `Title: ${question.title}\nDescription: ${question.description}\nCategory: ${question.category}`;
+};
 
 // Add a question
 const addQuestion = async (title, filePath, description, category) => {
@@ -24,6 +30,17 @@ const addQuestion = async (title, filePath, description, category) => {
     description,
     category
   });
+
+    await indexToPinecone({
+    id: question._id,
+    type: "question",
+    text: questionToText(question),
+    metadata: {
+      title: question.title,
+      category: question.category
+    }
+  });
+
 
   return question;
 };
@@ -51,6 +68,9 @@ const getQuestionById = async (id) => {
 const deleteQuestionById = async (id) => {
   const deleted = await Question.findByIdAndDelete(id);
   if (!deleted) throw new Error('Question not found');
+
+    await deleteFromPinecone("question", id);
+
   return deleted;
 };
 

@@ -1,5 +1,12 @@
 import Blog from '../models/blogModel.js';
 import { uploadOnCloudinary } from "../utils/uploadImage.js";
+import { indexToPinecone, deleteFromPinecone } from "../utils/indexer.js";
+
+const blogToText = (blog) => {
+  return `Blog Title: ${blog.Blog_title}\nContent: ${blog.Blog_content}`;
+};
+
+
 
 const addBlog=async(title,content,file)=>{
   let BlogImage = null;
@@ -13,6 +20,16 @@ const addBlog=async(title,content,file)=>{
     Blog_title:title,
     Blog_content:content,
     BlogImage:BlogImage});
+
+      await indexToPinecone({
+    id: blog._id,
+    type: "blog",
+    text: blogToText(blog),
+    metadata: {
+      title: blog.Blog_title
+    }
+  });
+
 
   return blog;
 }
@@ -41,12 +58,26 @@ const updateBlog=async(title,content,file,blogId)=>{
     // 4. Save the changes
     const updatedBlog = await blog.save();
 
+      await indexToPinecone({
+    id: updatedBlog._id,
+    type: "blog",
+    text: blogToText(updatedBlog),
+    metadata: {
+      title: updatedBlog.Blog_title
+    }
+  });
+
+
     return updatedBlog;
 }
 
 const deleteBlog=async(blogId)=>{
   const blog=await Blog.findByIdAndDelete(blogId);
   
+    if (blog) {
+    await deleteFromPinecone("blog", blogId);
+  }
+
   
   return blog;
 

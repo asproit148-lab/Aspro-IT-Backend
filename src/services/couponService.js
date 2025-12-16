@@ -1,4 +1,10 @@
 import Coupon from "../models/couponModel.js";
+import { indexToPinecone, deleteFromPinecone } from "../utils/indexer.js";
+
+const couponToText = (coupon) => {
+  return `Coupon Code: ${coupon.Code}\nDiscount: ${coupon.Discount}%\nExpiry Date: ${coupon.Expiry_date}`;
+};
+
 
 const addCoupon = async (Code, Discount, Expiry_date) => {
 
@@ -14,6 +20,13 @@ const addCoupon = async (Code, Discount, Expiry_date) => {
   });
 
   await newCoupon.save();
+    await indexToPinecone({
+    id: newCoupon._id,
+    type: "coupon",
+    text: couponToText(newCoupon),
+    metadata: { code: newCoupon.Code, discount: newCoupon.Discount }
+  });
+
   return newCoupon;
 };
 
@@ -38,6 +51,14 @@ const updateCoupon = async (data, couponId) => {
   coupon.set(data);
   const updatedCoupon = await coupon.save();
 
+    await indexToPinecone({
+    id: updatedCoupon._id,
+    type: "coupon",
+    text: couponToText(updatedCoupon),
+    metadata: { code: updatedCoupon.Code, discount: updatedCoupon.Discount }
+  });
+
+
   return updatedCoupon;
 };
 
@@ -47,6 +68,9 @@ const deleteCoupon = async (couponId) => {
   if (!coupon) {
     throw new Error("Coupon not found");
   }
+
+    await deleteFromPinecone("coupon", couponId);
+
 
   return coupon;
 };

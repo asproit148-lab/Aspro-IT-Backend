@@ -1,13 +1,39 @@
 import Opportunity from "../models/opportunityModel.js";
+import { indexToPinecone, deleteFromPinecone } from "../utils/indexer.js";
+
+
+const opportunityToText = (opportunity) => {
+  return `Title: ${opportunity.title}\nType: ${opportunity.type}\nDescription: ${opportunity.description}\nCompany: ${opportunity.company}\nLocation: ${opportunity.location}`;
+};
+
 
 // Add a job/internship
 export const addOpportunity = async (data) => {
-  return await Opportunity.create(data);
+  const newOpportunity = await Opportunity.create(data);
+
+  // 🔥 Index in Pinecone
+  await indexToPinecone({
+    id: newOpportunity._id,
+    type: "opportunity",
+    text: opportunityToText(newOpportunity),
+    metadata: {
+      title: newOpportunity.title,
+      type: newOpportunity.type,
+      company: newOpportunity.company,
+      location: newOpportunity.location
+    }
+  });
+
+  return newOpportunity;
 };
 
 // Delete an opportunity
 export const deleteOpportunity = async (id) => {
-  return await Opportunity.findByIdAndDelete(id);
+  const deleted = await Opportunity.findByIdAndDelete(id);
+  if (deleted) {
+    await deleteFromPinecone("opportunity", id);
+  }
+  return deleted;
 };
 
 // Get all opportunities (admin view)

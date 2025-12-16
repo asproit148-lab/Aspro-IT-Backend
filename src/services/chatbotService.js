@@ -1,4 +1,4 @@
-import { askAI } from "../utils/askAi.js";
+import { askAI } from "../utils/askiAI.js";
 
 
 const getChatbotResponse=async(message)=>{

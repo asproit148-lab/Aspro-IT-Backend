@@ -1,6 +1,9 @@
 import Course from "../models/courseModel.js";
 import User from "../models/userModel.js";
+import { indexToPinecone, deleteFromPinecone } from "../utils/indexer.js";
 import { uploadOnCloudinary } from "../utils/uploadImage.js";
+import { courseToText } from "../utils/courseToText.js";
+
 
 const addCourse = async ({
   Course_title,
@@ -59,6 +62,19 @@ console.log("Image File Received:", imageUrl);
   });
 
   await newCourse.save();
+
+  await indexToPinecone({
+  id: newCourse._id,
+  type: "course",
+  text: courseToText(newCourse),
+  metadata: {
+    title: newCourse.Course_title,
+    courseType: newCourse.Course_type,
+    cost: newCourse.Course_cost
+  }
+});
+
+
   return newCourse;
 };
 
@@ -91,12 +107,34 @@ const editCourse = async (id, data, imageFile) => {
   course.FAQs = data.FAQs || course.FAQs;
   course.What_you_will_learn = data.What_you_will_learn || course.What_you_will_learn;
 
-  return await course.save();
+const updatedCourse = await course.save();
+
+// 🔥 RE-INDEX UPDATED COURSE
+await indexToPinecone({
+  id: updatedCourse._id,
+  type: "course",
+  text: courseToText(updatedCourse),
+  metadata: {
+    title: updatedCourse.Course_title,
+    courseType: updatedCourse.Course_type,
+    cost: updatedCourse.Course_cost
+  }
+});
+
+return updatedCourse;
 };
 
 const deleteCourse = async (courseId) => {
-  return await Course.findByIdAndDelete(courseId);
+  const deleted = await Course.findByIdAndDelete(courseId);
+
+  if (deleted) {
+    // 🔥 REMOVE FROM PINECONE
+    await deleteFromPinecone("course", courseId);
+  }
+
+  return deleted;
 };
+
 
 const getCourses = async () => {
   return await Course.find();

@@ -51,14 +51,19 @@ const register = async (name, email, password) => {
 
 const login = async (email, password) => {
   console.time("TOTAL_LOGIN_TIME");
+  console.log(email,password);
 
   console.time("db_time")
   const user = await User.findOne({ email });
+  console.log(user);
   if (!user) throw new Error("user does not exist");
     console.timeEnd("db_time")
 
   console.time("password_matching");
+    console.log(password,user.password);
+
   const matchPassword = await bcrypt.compare(password, user.password);
+  console.log(password,user.password);
   if (!matchPassword) throw new Error("incorrect password");
     console.timeEnd("password_matching");
 
@@ -73,7 +78,7 @@ const login = async (email, password) => {
 
   const options = {
     httpOnly: true,
-    secure: true,
+    secure: false,
     sameSite: "none",
   };
 console.timeEnd("TOTAL_LOGIN_TIME");

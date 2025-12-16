@@ -66,18 +66,20 @@ export const loginUser = async (req, res) => {
     const { email, password } = req.body;
     const data = await userService.login(email, password);
 
-    const { accessToken, refreshToken } = data;
-
     res
-      .cookie("accessToken", accessToken, cookieOptions)
-      .cookie("refreshToken", refreshToken, cookieOptions)
+      .cookie("accessToken", data.accessToken, cookieOptions)
+      .cookie("refreshToken", data.refreshToken, cookieOptions)
       .status(200)
-      .json(data);
+      .json({
+        message: "User logged in successfully",
+        user: data.user
+      });
 
   } catch (error) {
-    res
-      .status(400)
-      .json({ message: "user login failed", error: error.message });
+    res.status(400).json({
+      message: "user login failed",
+      error: error.message
+    });
   }
 };
 

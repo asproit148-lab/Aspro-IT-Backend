@@ -4,17 +4,27 @@ import { uploadOnCloudinary } from '../utils/uploadImage.js';
 // Add a question
 const addQuestion = async (title, filePath, description, category) => {
   let uploadedUrl = filePath;
+  let publicId = null;
+
   if (filePath) {
     const uploadResult = await uploadOnCloudinary(filePath);
+    if (!uploadResult) {
+      throw new Error('Failed to upload file to Cloudinary');
+    }
     uploadedUrl = uploadResult.secure_url;
+    publicId = uploadResult.public_id;
   }
+
   console.log("Uploaded URL:", uploadedUrl);
+  
   const question = await Question.create({
     title,
     url: uploadedUrl,
+    public_id: publicId,
     description,
     category
   });
+
   return question;
 };
 
@@ -26,9 +36,8 @@ const getAllQuestions = async () => {
 
 // Get questions by category/courseId
 const getQuestionsByCategory = async (category) => {
-    // MongoDB query to find all questions where the category matches the provided ID
-    const questions = await Question.find({ category: category }).sort({ createdAt: -1 });
-    return questions;
+  const questions = await Question.find({ category: category }).sort({ createdAt: -1 });
+  return questions;
 };
 
 // Get single question by ID
@@ -45,4 +54,10 @@ const deleteQuestionById = async (id) => {
   return deleted;
 };
 
-export { addQuestion, getAllQuestions, getQuestionById, deleteQuestionById, getQuestionsByCategory};
+export { 
+  addQuestion, 
+  getAllQuestions, 
+  getQuestionById, 
+  deleteQuestionById, 
+  getQuestionsByCategory
+};
